@@ -282,6 +282,22 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
     const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
     const [isListFullscreen, setIsListFullscreen] = useState<boolean>(forceTvMode || false);
     const [isBrowserFullscreen, setIsBrowserFullscreen] = useState<boolean>(false);
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+    const toggleDropdown = (name: string) => {
+        setOpenDropdown(prev => prev === name ? null : name);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.dropdown-container')) {
+                setOpenDropdown(null);
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     const enterNativeFullscreen = async () => {
         try {
@@ -827,10 +843,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                 </div>
 
                                 {/* Selector Múltiple de Quirófano */}
-                                <div className="flex flex-col gap-1 w-full">
+                                <div className="flex flex-col gap-1 w-full dropdown-container">
                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Quirófano</span>
-                                    <div className="relative group/room-select z-50">
-                                        <div className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 group-hover/room-select:border-blue-500/50">
+                                    <div className="relative z-50">
+                                        <div 
+                                            onClick={() => toggleDropdown('room')}
+                                            className={`w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 ${openDropdown === 'room' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-500/50'}`}
+                                        >
                                             <span className="truncate pr-2">
                                                 {filterRoom.length === 0 
                                                     ? "Todas las Salas" 
@@ -838,9 +857,9 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                         ? (salas.find(s => s.id === filterRoom[0])?.name || filterRoom[0])
                                                         : `${filterRoom.length} Salas Seleccionadas`}
                                             </span>
-                                            <svg className="w-4 h-4 text-zinc-400 group-hover/room-select:text-[var(--color-hospital-blue)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className={`w-4 h-4 text-zinc-400 transition-colors flex-shrink-0 ${openDropdown === 'room' ? 'text-[var(--color-hospital-blue)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="absolute top-[calc(100%-8px)] left-0 w-full pt-3 opacity-0 invisible group-hover/room-select:opacity-100 group-hover/room-select:visible transition-all duration-200 z-50">
+                                        <div className={`absolute top-[calc(100%-8px)] left-0 w-full pt-3 transition-all duration-200 z-50 ${openDropdown === 'room' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                                                 <div className="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
                                                     <div className="flex items-center justify-between px-1">
@@ -873,10 +892,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                 </div>
 
                                 {/* Selector Múltiple de Especialidad */}
-                                <div className="flex flex-col gap-1 w-full">
+                                <div className="flex flex-col gap-1 w-full dropdown-container">
                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Especialidad</span>
-                                    <div className="relative group/specialty-select z-40">
-                                        <div className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 group-hover/specialty-select:border-blue-500/50">
+                                    <div className="relative z-40">
+                                        <div 
+                                            onClick={() => toggleDropdown('specialty')}
+                                            className={`w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 ${openDropdown === 'specialty' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-500/50'}`}
+                                        >
                                             <span className="truncate pr-2">
                                                 {filterSpecialty.length === 0 
                                                     ? "Cualquier Especialidad" 
@@ -884,9 +906,9 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                         ? (specialties?.find(s => s.id === filterSpecialty[0])?.name || filterSpecialty[0])
                                                         : `${filterSpecialty.length} Espec. Selecc.`}
                                             </span>
-                                            <svg className="w-4 h-4 text-zinc-400 group-hover/specialty-select:text-[var(--color-hospital-blue)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className={`w-4 h-4 text-zinc-400 transition-colors flex-shrink-0 ${openDropdown === 'specialty' ? 'text-[var(--color-hospital-blue)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="absolute top-[calc(100%-8px)] left-0 w-full pt-3 opacity-0 invisible group-hover/specialty-select:opacity-100 group-hover/specialty-select:visible transition-all duration-200 z-50">
+                                        <div className={`absolute top-[calc(100%-8px)] left-0 w-full pt-3 transition-all duration-200 z-50 ${openDropdown === 'specialty' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                                                 <div className="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
                                                     <div className="flex items-center justify-between px-1">
@@ -919,10 +941,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                 </div>
 
                                 {/* Selector Múltiple de Profesional */}
-                                <div className="flex flex-col gap-1 w-full">
+                                <div className="flex flex-col gap-1 w-full dropdown-container">
                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Profesional</span>
-                                    <div className="relative group/staff-select z-30">
-                                        <div className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 group-hover/staff-select:border-blue-500/50">
+                                    <div className="relative z-30">
+                                        <div 
+                                            onClick={() => toggleDropdown('staff')}
+                                            className={`w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 ${openDropdown === 'staff' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-500/50'}`}
+                                        >
                                             <span className="truncate pr-2">
                                                 {filterStaff.length === 0 
                                                     ? "Cualquier Profesional" 
@@ -934,9 +959,9 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                         })()
                                                         : `${filterStaff.length} Prof. Selecc.`}
                                             </span>
-                                            <svg className="w-4 h-4 text-zinc-400 group-hover/staff-select:text-[var(--color-hospital-blue)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className={`w-4 h-4 text-zinc-400 transition-colors flex-shrink-0 ${openDropdown === 'staff' ? 'text-[var(--color-hospital-blue)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="absolute top-[calc(100%-8px)] left-0 w-full pt-3 opacity-0 invisible group-hover/staff-select:opacity-100 group-hover/staff-select:visible transition-all duration-200 z-50">
+                                        <div className={`absolute top-[calc(100%-8px)] left-0 w-full pt-3 transition-all duration-200 z-50 ${openDropdown === 'staff' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                                                 <div className="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
                                                     <div className="mb-2 relative">
@@ -1004,10 +1029,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                 </div>
 
                                 {/* Selector Múltiple de Estado */}
-                                <div className="flex flex-col gap-1 w-full">
+                                <div className="flex flex-col gap-1 w-full dropdown-container">
                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Estado</span>
-                                    <div className="relative group/status-select z-20">
-                                        <div className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 group-hover/status-select:border-blue-500/50">
+                                    <div className="relative z-20">
+                                        <div 
+                                            onClick={() => toggleDropdown('status')}
+                                            className={`w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 ${openDropdown === 'status' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-500/50'}`}
+                                        >
                                             <span className="truncate pr-2">
                                                 {filterStatus.length === 0 
                                                     ? "Cualquier Estado" 
@@ -1026,9 +1054,9 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                           ].find(s => s.id === filterStatus[0])?.name || filterStatus[0]
                                                         : `${filterStatus.length} Estados Selecc.`}
                                             </span>
-                                            <svg className="w-4 h-4 text-zinc-400 group-hover/status-select:text-[var(--color-hospital-blue)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className={`w-4 h-4 text-zinc-400 transition-colors flex-shrink-0 ${openDropdown === 'status' ? 'text-[var(--color-hospital-blue)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="absolute top-[calc(100%-8px)] left-0 w-full pt-3 opacity-0 invisible group-hover/status-select:opacity-100 group-hover/status-select:visible transition-all duration-200 z-50">
+                                        <div className={`absolute top-[calc(100%-8px)] left-0 w-full pt-3 transition-all duration-200 z-50 ${openDropdown === 'status' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                                                 <div className="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
                                                     <div className="flex items-center justify-between px-1">
@@ -1094,10 +1122,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                 </div>
 
                                 {/* Selector Múltiple de Anestesia */}
-                                <div className="flex flex-col gap-1 w-full">
+                                <div className="flex flex-col gap-1 w-full dropdown-container">
                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider pl-1">Anestesia</span>
-                                    <div className="relative group/anesthesia-select z-[25]">
-                                        <div className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 group-hover/anesthesia-select:border-blue-500/50">
+                                    <div className="relative z-[25]">
+                                        <div 
+                                            onClick={() => toggleDropdown('anesthesia')}
+                                            className={`w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800/80 border rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer flex justify-between items-center transition-all bg-white dark:bg-zinc-900 ${openDropdown === 'anesthesia' ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-700 hover:border-blue-500/50'}`}
+                                        >
                                             <span className="truncate pr-2">
                                                 {filterAnesthesia.length === 0
                                                     ? "Cualquier Anestesia"
@@ -1115,9 +1146,9 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                           ].find((s) => s.id === filterAnesthesia[0])?.name || filterAnesthesia[0]
                                                         : `${filterAnesthesia.length} Anest. Selecc.`}
                                             </span>
-                                            <svg className="w-4 h-4 text-zinc-400 group-hover/anesthesia-select:text-[var(--color-hospital-blue)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                                            <svg className={`w-4 h-4 text-zinc-400 transition-colors flex-shrink-0 ${openDropdown === 'anesthesia' ? 'text-[var(--color-hospital-blue)]' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                         </div>
-                                        <div className="absolute top-[calc(100%-8px)] left-0 w-full pt-3 opacity-0 invisible group-hover/anesthesia-select:opacity-100 group-hover/anesthesia-select:visible transition-all duration-200 z-50">
+                                        <div className={`absolute top-[calc(100%-8px)] left-0 w-full pt-3 transition-all duration-200 z-50 ${openDropdown === 'anesthesia' ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
                                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
                                                 <div className="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
                                                     <div className="flex items-center justify-between px-1">
