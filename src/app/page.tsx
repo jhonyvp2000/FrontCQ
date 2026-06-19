@@ -7,7 +7,11 @@ import { SurgeryTvTable } from "@/app/surgery-tv-table";
 import { checkSession } from "@/lib/auth-helpers";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ sort?: string, date?: string, dateNew?: string }> }) {
-    await checkSession();
+    const session = await checkSession();
+    const currentUser = session?.user ? {
+        name: session.user.name || "",
+        lastname: (session.user as any).lastname || ""
+    } : null;
     const sortParams = await searchParams;
     const currentSort = sortParams?.sort === 'asc' ? 'asc' : 'desc';
     
@@ -65,6 +69,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
                 initialDate={dateAntigua || ""} 
                 initialDateNew={dateNueva || ""}
                 forceTvMode={true}
+                currentUser={currentUser}
             />
         </div>
     );

@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Stethoscope, Lock, User, AlertCircle, ArrowRight } from "lucide-react";
+import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
     const router = useRouter();
     const [dni, setDni] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -19,6 +20,10 @@ export default function LoginPage() {
             if (errorParam === "SessionExpired" || errorParam === "forced_logout") {
                 setError("Tu sesión ha expirado o ha sido invalidada. Por favor, inicia sesión de nuevo.");
                 signOut({ redirect: false });
+            }
+            const messageParam = params.get("message");
+            if (messageParam === "password_changed") {
+                setSuccessMsg("Tu contraseña ha sido cambiada con éxito. Por favor, inicia sesión con tu nueva clave.");
             }
         }
     }, []);
@@ -91,6 +96,13 @@ export default function LoginPage() {
                                 <div className="p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 text-red-700 dark:text-red-400 text-xs flex items-start rounded-r-md">
                                     <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
                                     <p>{error}</p>
+                                </div>
+                            )}
+
+                            {successMsg && (
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border-l-4 border-emerald-500 text-emerald-750 dark:text-emerald-400 text-xs flex items-start rounded-r-md">
+                                    <CheckCircle2 className="w-4 h-4 mr-2 flex-shrink-0 text-emerald-500" />
+                                    <p>{successMsg}</p>
                                 </div>
                             )}
 

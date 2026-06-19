@@ -152,7 +152,7 @@ export const formatDemographicsOnly = (patientPii: any, patient: any, bedNumber?
     return `(${sexStr} ${ageStr} HC: ${hcStr}${bloodGroupRh ? ` GFS: ${bloodGroupRh}` : ''})${bedNumber ? ` C: ${bedNumber}` : ''}`;
 };
 
-export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean }) {
+export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false, currentUser = null }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean, currentUser?: { name: string; lastname: string } | null }) {
     const canEdit = permissions.includes('editar:programacion');
     const canCancel = permissions.includes('cancelar:programacion');
     const canAdvancePhase = permissions.includes('avanzar_fase:programacion');
@@ -716,6 +716,26 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200/50 dark:border-emerald-800/50 shadow-sm hidden sm:block">
                         {surgeriesData.filter(s => s.surgery.status !== 'cancelled').length} Activas
                     </span>
+
+                    {currentUser && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/40 border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm hidden md:flex shrink-0 select-none">
+                            <div className="w-6 h-6 rounded-full bg-[var(--color-hospital-blue)] text-white text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0">
+                                {(() => {
+                                    const n = currentUser.name?.trim().charAt(0) || "";
+                                    const l = currentUser.lastname?.trim().charAt(0) || "";
+                                    return `${n}${l}`.toUpperCase();
+                                })()}
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-250 leading-tight">
+                                    {currentUser.name} {currentUser.lastname}
+                                </span>
+                                <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500 leading-none mt-0.5">
+                                    Conectado
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         onClick={async () => {

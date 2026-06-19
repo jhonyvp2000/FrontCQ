@@ -12,6 +12,7 @@ interface ExtendedUser extends User {
     lastname: string;
     tokenVersion: number;
     permissions: string[];
+    mustChangePassword?: boolean;
 }
 
 export const authOptions: AuthOptions = {
@@ -61,6 +62,7 @@ export const authOptions: AuthOptions = {
                         );
 
                     const permissions = permissionRows.map(p => p.action);
+                    const mustChangePassword = credentials.password === credentials.dni;
 
                     return {
                         id: user.id,
@@ -68,7 +70,8 @@ export const authOptions: AuthOptions = {
                         name: user.name,
                         lastname: user.lastname,
                         tokenVersion: user.tokenVersion,
-                        permissions
+                        permissions,
+                        mustChangePassword
                     } as ExtendedUser;
                 } catch (error) {
                     console.error("Auth error:", error);
@@ -87,6 +90,7 @@ export const authOptions: AuthOptions = {
                 token.lastname = extUser.lastname;
                 token.permissions = extUser.permissions;
                 token.tokenVersion = extUser.tokenVersion;
+                token.mustChangePassword = extUser.mustChangePassword;
             }
             return token;
         },
@@ -116,6 +120,7 @@ export const authOptions: AuthOptions = {
                     (session.user as any).name = token.name;
                     (session.user as any).lastname = token.lastname;
                     (session.user as any).permissions = token.permissions || [];
+                    (session.user as any).mustChangePassword = !!token.mustChangePassword;
                 }
             } catch (error) {
                 console.error("Error validando sesión:", error);
