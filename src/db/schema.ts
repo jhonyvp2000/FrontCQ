@@ -239,7 +239,7 @@ export const cqAccountRequests = pgTable("cq_account_requests", {
   dni: varchar("dni", { length: 20 }).notNull(),
   tuitionCode: varchar("tuition_code", { length: 50 }).notNull(),
   requestedEmail: text("requested_email").notNull(),
-  requestedPhone: varchar("phone", { length: 20 }),
+  phone: varchar("phone", { length: 20 }),
   newPasswordHash: text("new_password_hash").notNull(),
   status: varchar("status", { length: 20 }).notNull().default('PENDING'), // PENDING, APPROVED, REJECTED
   token: text("token").notNull().unique(),
@@ -248,3 +248,14 @@ export const cqAccountRequests = pgTable("cq_account_requests", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+// Registro de Bloqueos e Intentos Fallidos por DNI para Desafíos de Seguridad
+export const cqAccountRequestBlocks = pgTable("cq_account_request_blocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  dni: varchar("dni", { length: 20 }).notNull().unique(),
+  failedAttempts: integer("failed_attempts").default(0).notNull(),
+  cycleCount: integer("cycle_count").default(0).notNull(),
+  isPermanentlyBlocked: boolean("is_permanently_blocked").default(false).notNull(),
+  blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

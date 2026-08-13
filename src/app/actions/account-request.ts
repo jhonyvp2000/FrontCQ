@@ -1,8 +1,19 @@
 "use server";
 
 import { db } from "@/db";
-import { usersTable, staffProfiles, userSystemRoles, rolesTable, cqAccountRequests, professions } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import {
+  usersTable,
+  staffProfiles,
+  userSystemRoles,
+  rolesTable,
+  cqAccountRequests,
+  professions,
+  cqSurgeries,
+  cqSurgeryTeam,
+  cqPatientPii,
+  cqAccountRequestBlocks
+} from "@/db/schema";
+import { eq, and, sql, gt } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendAccountRequestApprovalEmail } from "@/lib/email-service";
@@ -46,6 +57,30 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
       return { success: false, message: "Por favor ingresa tu código de colegiatura oficial (CMP, CEP, etc.)." };
     }
 
+    // 0. Check Block Status for DNI
+    const blockRecord = await db.query.cqAccountRequestBlocks.findFirst({
+      where: eq(cqAccountRequestBlocks.dni, cleanDni),
+    });
+
+    if (blockRecord) {
+      if (blockRecord.isPermanentlyBlocked) {
+        return {
+          success: false,
+          isPermanentlyBlocked: true,
+          message: "🔒 Cuenta Bloqueada Permanentemente: Tu DNI ha sido bloqueado tras superar el número máximo de reintentos permitidos. Debes solicitar tu activación directamente para revisión manual por la Jefatura de Centro Quirúrgico.",
+        };
+      }
+
+      if (blockRecord.blockedUntil && new Date(blockRecord.blockedUntil) > new Date()) {
+        const remainingMinutes = Math.ceil((new Date(blockRecord.blockedUntil).getTime() - Date.now()) / 60000);
+        return {
+          success: false,
+          isTemporarilyBlocked: true,
+          message: `🔒 Bloqueo Temporal: Has excedido el límite de intentos fallidos. Por favor inténtalo nuevamente en ${remainingMinutes} minuto(s).`,
+        };
+      }
+    }
+
     // 1. Check if user exists in database
     const user = await db.query.usersTable.findFirst({
       where: eq(usersTable.dni, cleanDni),
@@ -61,9 +96,6 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
     // 2. Check if tuition code matches staff_profiles record
     const staffProfile = await db.query.staffProfiles.findFirst({
       where: eq(staffProfiles.userId, user.id),
-      with: {
-        // Option to include profession if needed
-      }
     });
 
     if (!staffProfile || !staffProfile.tuitionCode) {
@@ -129,6 +161,13 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
       }
     }
 
+    // 6. Count surgery participations in cq_surgery_team
+    const surgeryCountRes = await db.select({ count: sql<number>`count(*)` })
+      .from(cqSurgeryTeam)
+      .where(eq(cqSurgeryTeam.staffUserId, user.id));
+
+    const staffSurgeriesCount = Number(surgeryCountRes[0]?.count || 0);
+
     return {
       success: true,
       user: {
@@ -140,11 +179,168 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
         email: user.email || '',
         tuitionCode: staffProfile.tuitionCode,
         professionName,
+        hasSurgeryHistory: staffSurgeriesCount > 0,
+        staffSurgeriesCount,
       }
     };
   } catch (error) {
     console.error("Error en validateStaffIdentityAction:", error);
     return { success: false, message: "Ocurrió un error inesperado al consultar la base de datos." };
+  }
+}
+
+export interface VerifySurgicalChallengeInput {
+  staffDni: string;
+  staffUserId: string;
+  patientDni: string;
+  surgeryDate: string; // YYYY-MM-DD
+}
+
+export async function verifySurgicalChallengeAction(data: VerifySurgicalChallengeInput) {
+  try {
+    const { ip, host } = await getClientIpFromHeaders();
+    if (!isInternalHospitalIp(ip, host)) {
+      return {
+        success: false,
+        isNetworkRestricted: true,
+        message: "🔒 Acceso Denegado: La habilitación de cuentas asistenciales solo está permitida desde computadoras conectadas a la Red Interna del Hospital.",
+      };
+    }
+
+    const cleanStaffDni = data.staffDni.trim();
+    const cleanPatientDni = data.patientDni.trim();
+    const inputSurgeryDate = data.surgeryDate.trim(); // YYYY-MM-DD
+
+    if (!cleanStaffDni || cleanStaffDni.length !== 8) {
+      return { success: false, message: "DNI de usuario no válido." };
+    }
+
+    if (!cleanPatientDni || cleanPatientDni.length < 8) {
+      return { success: false, message: "Por favor ingresa un número de DNI de paciente válido (8 dígitos)." };
+    }
+
+    if (!inputSurgeryDate) {
+      return { success: false, message: "Por favor selecciona la fecha de la intervención quirúrgica." };
+    }
+
+    // 1. Check current Block Status for Staff DNI
+    const blockRecord = await db.query.cqAccountRequestBlocks.findFirst({
+      where: eq(cqAccountRequestBlocks.dni, cleanStaffDni),
+    });
+
+    if (blockRecord) {
+      if (blockRecord.isPermanentlyBlocked) {
+        return {
+          success: false,
+          isPermanentlyBlocked: true,
+          message: "🔒 Cuenta Bloqueada Permanentemente: Has superado el número máximo de reintentos permitidos. Debes solicitar tu activación directamente para revisión manual por la Jefatura de Centro Quirúrgico.",
+        };
+      }
+
+      if (blockRecord.blockedUntil && new Date(blockRecord.blockedUntil) > new Date()) {
+        const remainingMinutes = Math.ceil((new Date(blockRecord.blockedUntil).getTime() - Date.now()) / 60000);
+        return {
+          success: false,
+          isTemporarilyBlocked: true,
+          message: `🔒 Bloqueo Temporal: Has excedido el límite de 3 intentos fallidos. Inténtalo nuevamente en ${remainingMinutes} minuto(s).`,
+        };
+      }
+    }
+
+    // 2. Query Database for Surgical Participation Coincidence
+    // Query: cqSurgeryTeam INNER JOIN cqSurgeries INNER JOIN cqPatientPii
+    const matchingSurgeries = await db.select({
+      surgeryId: cqSurgeries.id,
+      scheduledDate: cqSurgeries.scheduledDate,
+    })
+    .from(cqSurgeryTeam)
+    .innerJoin(cqSurgeries, eq(cqSurgeryTeam.surgeryId, cqSurgeries.id))
+    .innerJoin(cqPatientPii, eq(cqSurgeries.patientId, cqPatientPii.patientId))
+    .where(
+      and(
+        eq(cqSurgeryTeam.staffUserId, data.staffUserId),
+        eq(cqPatientPii.dni, cleanPatientDni),
+        sql`DATE(${cqSurgeries.scheduledDate} AT TIME ZONE 'UTC') = ${inputSurgeryDate}::date OR DATE(${cqSurgeries.scheduledDate}) = ${inputSurgeryDate}::date OR DATE(${cqSurgeries.requestDate}) = ${inputSurgeryDate}::date`
+      )
+    );
+
+    if (matchingSurgeries.length > 0) {
+      // SUCCESS: Reset failed attempts in current block record if any
+      if (blockRecord) {
+        await db.update(cqAccountRequestBlocks)
+          .set({ failedAttempts: 0, updatedAt: new Date() })
+          .where(eq(cqAccountRequestBlocks.id, blockRecord.id));
+      }
+
+      return {
+        success: true,
+        message: "Verificación de actividad quirúrgica comprobada exitosamente en la base de datos de BackCQ."
+      };
+    }
+
+    // FAILED ATTEMPT HANDLING: Record attempt & apply block rules
+    let currentFailedAttempts = 1;
+    let currentCycleCount = 0;
+    let newBlockedUntil: Date | null = null;
+    let isPermBlock = false;
+
+    if (!blockRecord) {
+      await db.insert(cqAccountRequestBlocks).values({
+        dni: cleanStaffDni,
+        failedAttempts: 1,
+        cycleCount: 0,
+        isPermanentlyBlocked: false,
+      });
+    } else {
+      currentFailedAttempts = blockRecord.failedAttempts + 1;
+      currentCycleCount = blockRecord.cycleCount;
+
+      if (currentFailedAttempts >= 3) {
+        currentCycleCount += 1;
+        currentFailedAttempts = 0; // Reset attempts counter for next cycle
+
+        if (currentCycleCount >= 3) { // 3 cycles of 3 failed attempts = Permanent Block
+          isPermBlock = true;
+        } else { // 15-minute temporary pause
+          newBlockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+        }
+      }
+
+      await db.update(cqAccountRequestBlocks)
+        .set({
+          failedAttempts: currentFailedAttempts,
+          cycleCount: currentCycleCount,
+          isPermanentlyBlocked: isPermBlock,
+          blockedUntil: newBlockedUntil,
+          updatedAt: new Date(),
+        })
+        .where(eq(cqAccountRequestBlocks.id, blockRecord.id));
+    }
+
+    if (isPermBlock) {
+      return {
+        success: false,
+        isPermanentlyBlocked: true,
+        message: "🔒 Cuenta Bloqueada Permanentemente: Has excedido el límite máximo de reintentos permitidos (3 ciclos de pausas). Tu DNI ha sido bloqueado en la base de datos del sistema. Debes solicitar tu activación directamente para revisión manual por la Jefatura de Centro Quirúrgico.",
+      };
+    }
+
+    if (newBlockedUntil) {
+      return {
+        success: false,
+        isTemporarilyBlocked: true,
+        message: `🔒 Bloqueo Temporal de 15 Minutos: Has excedido el límite de 3 intentos fallidos (Pausa ${currentCycleCount} de 2). Por favor inténtalo nuevamente en 15 minutos.`,
+      };
+    }
+
+    const attemptsRemaining = 3 - currentFailedAttempts;
+    return {
+      success: false,
+      message: `🔒 Error de Validación: Los datos quirúrgicos ingresados no coinciden con ninguna intervención registrada en BackCQ. Verifique el DNI del paciente y la fecha exacta. (Quedan ${attemptsRemaining} intento(s) en este ciclo).`,
+    };
+  } catch (error) {
+    console.error("Error en verifySurgicalChallengeAction:", error);
+    return { success: false, message: "Ocurrió un error inesperado al verificar la actividad quirúrgica." };
   }
 }
 
@@ -200,7 +396,7 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
       dni,
       tuitionCode,
       requestedEmail: cleanEmail,
-      requestedPhone: phone?.trim() || null,
+      phone: phone?.trim() || null,
       newPasswordHash: passwordHash,
       status: 'PENDING',
       token,
@@ -256,7 +452,7 @@ export async function getAccountRequestByTokenAction(token: string) {
         dni: request.dni,
         tuitionCode: request.tuitionCode,
         requestedEmail: request.requestedEmail,
-        phone: request.requestedPhone,
+        phone: request.phone,
         status: request.status,
         createdAt: request.createdAt,
         doctorName: user ? `${user.name} ${user.lastname}` : request.dni,
