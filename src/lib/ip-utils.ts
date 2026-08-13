@@ -1,6 +1,30 @@
 import { headers } from "next/headers";
 
-export function isInternalHospitalIp(ip: string | null | undefined): boolean {
+function is172Private(ip: string): boolean {
+  const parts = ip.split(".");
+  if (parts.length >= 2) {
+    const secondOctet = parseInt(parts[1], 10);
+    return secondOctet >= 16 && secondOctet <= 31;
+  }
+  return false;
+}
+
+export function isInternalHospitalIp(ip: string | null | undefined, hostHeader?: string | null): boolean {
+  // 1. Host Inspection: If request arrived via a public domain or public WAN IP
+  if (hostHeader) {
+    const cleanHost = hostHeader.split(":")[0].toLowerCase().trim();
+    const isHostLocal =
+      cleanHost === "localhost" ||
+      cleanHost === "127.0.0.1" ||
+      cleanHost.startsWith("192.168.") ||
+      cleanHost.startsWith("10.") ||
+      (cleanHost.startsWith("172.") && is172Private(cleanHost));
+
+    if (!isHostLocal) {
+      return false; // Accessed via public domain or public WAN IP
+    }
+  }
+
   if (!ip) return false;
 
   // Clean IP (strip IPv6 prefix if mapped IPv4, e.g. ::ffff:192.168.41.25)
@@ -26,42 +50,44 @@ export function isInternalHospitalIp(ip: string | null | undefined): boolean {
   }
 
   // 3. 172.16.0.0 - 172.31.255.255
-  if (cleanIp.startsWith("172.")) {
-    const parts = cleanIp.split(".");
-    if (parts.length === 4) {
-      const secondOctet = parseInt(parts[1], 10);
-      if (secondOctet >= 16 && secondOctet <= 31) {
-        return true;
-      }
-    }
+  if (cleanIp.startsWith("172.") && is172Private(cleanIp)) {
+    return true;
   }
 
   return false;
 }
 
-export async function getClientIpFromHeaders(): Promise<string> {
+export async function getClientIpFromHeaders(): Promise<{ ip: string; host: string }> {
+  let host = "";
   try {
     const headerList = await headers();
+    host = headerList.get("host") || headerList.get("x-forwarded-host") || "";
+
     const forwardedFor = headerList.get("x-forwarded-for");
     if (forwardedFor) {
       const ips = forwardedFor.split(",");
       if (ips.length > 0 && ips[0].trim()) {
-        return ips[0].trim();
+        return { ip: ips[0].trim(), host };
       }
     }
 
     const realIp = headerList.get("x-real-ip");
     if (realIp) {
-      return realIp.trim();
+      return { ip: realIp.trim(), host };
     }
 
     const cfIp = headerList.get("cf-connecting-ip");
     if (cfIp) {
-      return cfIp.trim();
+      return { ip: cfIp.trim(), host };
+    }
+
+    const clientIpHeader = headerList.get("x-client-ip");
+    if (clientIpHeader) {
+      return { ip: clientIpHeader.trim(), host };
     }
   } catch (error) {
     console.error("Error reading headers for client IP:", error);
   }
 
-  return "127.0.0.1";
+  return { ip: "127.0.0.1", host };
 }

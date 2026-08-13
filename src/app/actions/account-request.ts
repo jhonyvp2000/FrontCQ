@@ -10,9 +10,9 @@ import { getClientIpFromHeaders, isInternalHospitalIp } from "@/lib/ip-utils";
 
 export async function checkIsInternalNetworkAction() {
   try {
-    const clientIp = await getClientIpFromHeaders();
-    const isInternal = isInternalHospitalIp(clientIp);
-    return { isInternal, clientIp };
+    const { ip, host } = await getClientIpFromHeaders();
+    const isInternal = isInternalHospitalIp(ip, host);
+    return { isInternal, clientIp: ip };
   } catch (error) {
     return { isInternal: false, clientIp: 'desconocida' };
   }
@@ -26,8 +26,8 @@ export interface ValidateStaffIdentityInput {
 export async function validateStaffIdentityAction(data: ValidateStaffIdentityInput) {
   try {
     // Security Enforcement: Restrict Account Activation to Internal Hospital Network Only
-    const clientIp = await getClientIpFromHeaders();
-    if (!isInternalHospitalIp(clientIp)) {
+    const { ip, host } = await getClientIpFromHeaders();
+    if (!isInternalHospitalIp(ip, host)) {
       return {
         success: false,
         isNetworkRestricted: true,
@@ -161,8 +161,8 @@ export interface SubmitAccountActivationInput {
 export async function submitAccountActivationRequestAction(data: SubmitAccountActivationInput) {
   try {
     // Security Enforcement: Restrict Account Activation to Internal Hospital Network Only
-    const clientIp = await getClientIpFromHeaders();
-    if (!isInternalHospitalIp(clientIp)) {
+    const { ip, host } = await getClientIpFromHeaders();
+    if (!isInternalHospitalIp(ip, host)) {
       return {
         success: false,
         isNetworkRestricted: true,
