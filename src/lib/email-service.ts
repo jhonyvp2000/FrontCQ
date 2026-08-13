@@ -23,8 +23,10 @@ export interface SendAccountRequestEmailParams {
 export async function sendAccountRequestApprovalEmail(params: SendAccountRequestEmailParams) {
   const { requestToken, doctorName, doctorDni, tuitionCode, requestedEmail, phone, baseUrl } = params;
 
-  const approvalUrl = `${baseUrl}/approve-request?token=${requestToken}`;
-  const rejectionUrl = `${baseUrl}/approve-request?token=${requestToken}&action=reject`;
+  const effectiveBaseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_APP_URL || baseUrl;
+
+  const approvalUrl = `${effectiveBaseUrl}/approve-request?token=${requestToken}`;
+  const rejectionUrl = `${effectiveBaseUrl}/approve-request?token=${requestToken}&action=reject`;
 
   const html = `
     <!DOCTYPE html>
