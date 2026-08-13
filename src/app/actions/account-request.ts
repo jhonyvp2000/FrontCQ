@@ -116,17 +116,8 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
       };
     }
 
-    // 3. Check if user already has an active backcq role
-    const existingRoles = await db.select()
-      .from(userSystemRoles)
-      .where(
-        and(
-          eq(userSystemRoles.userId, user.id),
-          eq(userSystemRoles.systemId, 'backcq')
-        )
-      );
-
-    if (existingRoles.length > 0) {
+    // 3. Check if user is already active in users table (users.is_active === true)
+    if (user.isActive === true) {
       return {
         success: false,
         isAlreadyActive: true,
@@ -524,9 +515,10 @@ export async function processAccountApprovalAction(token: string, action: 'appro
       roleId: role.id,
     }).onConflictDoNothing();
 
-    // 3. Update user's email, passwordHash, and updatedAt
+    // 3. Update user's email, passwordHash, isActive status, and updatedAt
     await db.update(usersTable)
       .set({
+        isActive: true,
         email: request.requestedEmail,
         passwordHash: request.newPasswordHash,
         tokenVersion: 1,
