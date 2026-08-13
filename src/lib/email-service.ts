@@ -23,10 +23,15 @@ export interface SendAccountRequestEmailParams {
 export async function sendAccountRequestApprovalEmail(params: SendAccountRequestEmailParams) {
   const { requestToken, doctorName, doctorDni, tuitionCode, requestedEmail, phone, baseUrl } = params;
 
-  const publicSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || process.env.PUBLIC_APP_URL || baseUrl).replace(/\/$/, '');
+  // Dual URL Construction: External (Public Internet 177.67.250.138:8087) vs Internal (Hospital LAN 192.168.41.25:3008)
+  const externalBaseUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://177.67.250.138:8087').replace(/\/$/, '');
+  const internalBaseUrl = (process.env.INTERNAL_SITE_URL || baseUrl || 'http://192.168.41.25:3008').replace(/\/$/, '');
 
-  const approvalUrl = `${publicSiteUrl}/approve-request?token=${requestToken}`;
-  const rejectionUrl = `${publicSiteUrl}/approve-request?token=${requestToken}&action=reject`;
+  const externalApprovalUrl = `${externalBaseUrl}/approve-request?token=${requestToken}`;
+  const internalApprovalUrl = `${internalBaseUrl}/approve-request?token=${requestToken}`;
+
+  const externalRejectionUrl = `${externalBaseUrl}/approve-request?token=${requestToken}&action=reject`;
+  const internalRejectionUrl = `${internalBaseUrl}/approve-request?token=${requestToken}&action=reject`;
 
   const html = `
     <!DOCTYPE html>
@@ -46,9 +51,11 @@ export async function sendAccountRequestApprovalEmail(params: SendAccountRequest
         .label { font-weight: 600; color: #475569; }
         .value { font-weight: 700; color: #0f172a; }
         .badge { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 12px; }
-        .actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
-        .btn-approve { background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
-        .btn-reject { background-color: #ef4444; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); }
+        .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 18px; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .actions-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+        .btn-approve-ext { background-color: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2); }
+        .btn-approve-int { background-color: #0284c7; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 12px; display: inline-block; }
+        .btn-reject { background-color: #ef4444; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 12px; display: inline-block; }
         .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
       </style>
     </head>
@@ -88,12 +95,27 @@ export async function sendAccountRequestApprovalEmail(params: SendAccountRequest
           </div>
 
           <p style="font-size: 13px; color: #475569; margin-top: 16px;">
-            Al presionar <strong>Aprobar Acceso</strong>, el sistema asociará automáticamente el rol asistencial a la cuenta, actualizará su correo para recibir notificaciones quirúrgicas y activará su contraseña personal.
+            Seleccione la opción de aprobación según desde dónde está accediendo:
           </p>
 
-          <div class="actions">
-            <a href="${approvalUrl}" class="btn-approve">✔ Aprobar Acceso (1-Clic)</a>
-            <a href="${rejectionUrl}" class="btn-reject">✖ Rechazar Solicitud</a>
+          <!-- Opción 1: Celular 4G / Casa (Internet Pública) -->
+          <div class="actions-box">
+            <div style="font-size: 12px; font-weight: 700; color: #15803d; margin-bottom: 6px;">
+              📱 Opción A: Desde Celular 4G / Casa (Internet Externa)
+            </div>
+            <a href="${externalApprovalUrl}" class="btn-approve-ext">✔ Aprobar Acceso (4G / Internet)</a>
+          </div>
+
+          <!-- Opción 2: PC Interna del Hospital -->
+          <div class="actions-box">
+            <div style="font-size: 12px; font-weight: 700; color: #0369a1; margin-bottom: 6px;">
+              💻 Opción B: Desde PC dentro de la Red del Hospital (192.168.x.x)
+            </div>
+            <a href="${internalApprovalUrl}" class="btn-approve-int">✔ Aprobar Acceso (Red Interna)</a>
+          </div>
+
+          <div style="margin-top: 16px; text-align: center;">
+            <a href="${externalRejectionUrl}" class="btn-reject">✖ Rechazar Solicitud</a>
           </div>
         </div>
         <div class="footer">
