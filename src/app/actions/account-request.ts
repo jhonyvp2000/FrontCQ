@@ -393,13 +393,31 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
       };
     }
 
+    const cleanPhone = phone?.trim() || null;
+
+    if (cleanPhone && cleanPhone.length > 0) {
+      const existingPhoneRequest = await db.query.cqAccountRequests.findFirst({
+        where: and(
+          eq(cqAccountRequests.phone, cleanPhone),
+          sql`${cqAccountRequests.userId} != ${userId}`
+        )
+      });
+
+      if (existingPhoneRequest) {
+        return {
+          success: false,
+          message: `🔒 El número celular '${cleanPhone}' ya se encuentra registrado en el sistema por otro usuario. Por favor ingresa tu número telefónico personal o déjalo en blanco.`
+        };
+      }
+    }
+
     // Save request in database
     await db.insert(cqAccountRequests).values({
       userId: user.id,
       dni,
       tuitionCode,
       requestedEmail: cleanEmail,
-      phone: phone?.trim() || null,
+      phone: cleanPhone,
       newPasswordHash: passwordHash,
       status: 'PENDING',
       token,
