@@ -129,31 +129,6 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
       }
     }
 
-    // 6. Pre-query NETHOS API to check challenge availability
-    let nethosHasPhone = false;
-    let nethosPhoneMask = "";
-
-    try {
-      const apiUrl = process.env.API_NETHOS_URL || "http://192.168.41.25:3010";
-      const resNethos = await fetch(`${apiUrl}/api/pacientes/search?documento=${cleanDni}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      });
-      if (resNethos.ok) {
-        const nethosJson = await resNethos.json();
-        const pData = nethosJson.data && nethosJson.data.length > 0 ? nethosJson.data[0] : null;
-        if (pData && pData.telefono) {
-          const digitsOnly = pData.telefono.replace(/[^0-9]/g, '');
-          if (digitsOnly.length >= 4) {
-            nethosHasPhone = true;
-            nethosPhoneMask = `*****${digitsOnly.slice(-4)}`;
-          }
-        }
-      }
-    } catch (nethosErr) {
-      console.warn("No se pudo consultar NETHOS para pre-pantalla de desafío:", nethosErr);
-    }
-
     return {
       success: true,
       user: {
@@ -165,116 +140,11 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
         email: user.email || '',
         tuitionCode: staffProfile.tuitionCode,
         professionName,
-        nethosHasPhone,
-        nethosPhoneMask,
       }
     };
   } catch (error) {
     console.error("Error en validateStaffIdentityAction:", error);
     return { success: false, message: "Ocurrió un error inesperado al consultar la base de datos." };
-  }
-}
-
-export interface VerifyNethosChallengeInput {
-  dni: string;
-  birthDate: string; // YYYY-MM-DD
-  district: string;
-  phoneLast4?: string;
-}
-
-export async function verifyNethosChallengeAction(data: VerifyNethosChallengeInput) {
-  try {
-    const { ip, host } = await getClientIpFromHeaders();
-    if (!isInternalHospitalIp(ip, host)) {
-      return {
-        success: false,
-        isNetworkRestricted: true,
-        message: "🔒 Acceso Denegado: La habilitación de cuentas asistenciales solo está permitida desde computadoras conectadas a la Red Interna del Hospital.",
-      };
-    }
-
-    const cleanDni = data.dni.trim();
-    const inputBirthDate = data.birthDate.trim();
-    const inputDistrict = data.district.trim().toUpperCase();
-    const inputPhoneLast4 = data.phoneLast4 ? data.phoneLast4.trim() : "";
-
-    if (!cleanDni || cleanDni.length !== 8) {
-      return { success: false, message: "Número de DNI no válido." };
-    }
-
-    if (!inputBirthDate) {
-      return { success: false, message: "Por favor ingresa tu fecha de nacimiento." };
-    }
-
-    if (!inputDistrict) {
-      return { success: false, message: "Por favor selecciona o ingresa tu distrito de residencia." };
-    }
-
-    // Query NETHOS API
-    const apiUrl = process.env.API_NETHOS_URL || "http://192.168.41.25:3010";
-    const resNethos = await fetch(`${apiUrl}/api/pacientes/search?documento=${cleanDni}`, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
-    });
-
-    if (!resNethos.ok) {
-      return {
-        success: false,
-        message: "No se pudo conectar con la API de NETHOS del hospital para convalidar los datos de identidad."
-      };
-    }
-
-    const nethosJson = await resNethos.json();
-    const patientData = nethosJson.data && nethosJson.data.length > 0 ? nethosJson.data[0] : null;
-
-    if (!patientData) {
-      return {
-        success: false,
-        message: "No se encontró registro del profesional en la base de datos NETHOS del hospital."
-      };
-    }
-
-    // 1. Verify Birth Date
-    let nethosBirthDateStr = "";
-    if (patientData.fechaNacimiento) {
-      nethosBirthDateStr = patientData.fechaNacimiento.split("T")[0]; // YYYY-MM-DD
-    }
-
-    if (!nethosBirthDateStr || nethosBirthDateStr !== inputBirthDate) {
-      return {
-        success: false,
-        message: "🔒 Error de Identidad: La fecha de nacimiento ingresada no coincide con su ficha personal NETHOS."
-      };
-    }
-
-    // 2. Verify District
-    const nethosDistrict = (patientData.distrito || "").trim().toUpperCase();
-    if (nethosDistrict && inputDistrict !== nethosDistrict) {
-      return {
-        success: false,
-        message: "🔒 Error de Identidad: El distrito de residencia/nacimiento seleccionado no coincide con su ficha personal NETHOS."
-      };
-    }
-
-    // 3. Verify Phone Last 4 digits (if available in NETHOS and input provided)
-    if (patientData.telefono) {
-      const digitsOnly = patientData.telefono.replace(/[^0-9]/g, '');
-      const nethosLast4 = digitsOnly.slice(-4);
-      if (nethosLast4 && inputPhoneLast4 && inputPhoneLast4 !== nethosLast4) {
-        return {
-          success: false,
-          message: "🔒 Error de Identidad: Los 4 últimos dígitos del celular ingresado no coinciden con su registro en NETHOS."
-        };
-      }
-    }
-
-    return {
-      success: true,
-      message: "Verificación de identidad NETHOS completada con éxito."
-    };
-  } catch (error) {
-    console.error("Error en verifyNethosChallengeAction:", error);
-    return { success: false, message: "Ocurrió un error inesperado al verificar la identidad con NETHOS." };
   }
 }
 
