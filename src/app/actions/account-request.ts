@@ -381,6 +381,18 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
       return { success: false, message: "Usuario no encontrado." };
     }
 
+    // Check if requested email is already used by another user in usersTable
+    const existingEmailUser = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, cleanEmail)
+    });
+
+    if (existingEmailUser && existingEmailUser.id !== userId) {
+      return {
+        success: false,
+        message: `🔒 El correo '${cleanEmail}' ya se encuentra registrado en el sistema por otro usuario (${existingEmailUser.name} ${existingEmailUser.lastname}). Por favor ingresa tu correo personal o institucional.`
+      };
+    }
+
     // Save request in database
     await db.insert(cqAccountRequests).values({
       userId: user.id,
@@ -525,6 +537,17 @@ export async function processAccountApprovalAction(token: string, action: 'appro
     }
 
     // 3. Update user's email, passwordHash, isActive status, and updatedAt
+    const existingEmailUser = await db.query.usersTable.findFirst({
+      where: eq(usersTable.email, request.requestedEmail)
+    });
+
+    if (existingEmailUser && existingEmailUser.id !== request.userId) {
+      return {
+        success: false,
+        message: `🔒 No se pudo completar la aprobación: El correo '${request.requestedEmail}' ya pertenece a otro usuario registrado en la base de datos (${existingEmailUser.name} ${existingEmailUser.lastname}).`,
+      };
+    }
+
     await db.update(usersTable)
       .set({
         isActive: true,
