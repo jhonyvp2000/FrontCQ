@@ -190,12 +190,7 @@ export default function LoginPage() {
                         </form>
 
                         <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800 text-center">
-                            {isInternalNetwork === false ? (
-                                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/50 cursor-not-allowed">
-                                    <WifiOff className="w-4 h-4 text-zinc-400" />
-                                    <span>Activación de cuenta disponible solo desde la Red Hospitalaria</span>
-                                </div>
-                            ) : (
+                            {isInternalNetwork === true ? (
                                 <a
                                     href="/register-request"
                                     className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 border border-cyan-200 dark:border-cyan-800/50 transition-all shadow-sm"
@@ -203,6 +198,11 @@ export default function LoginPage() {
                                     <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                                     ¿Eres personal asistencial? Activa tu cuenta aquí
                                 </a>
+                            ) : (
+                                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/50 cursor-not-allowed">
+                                    <WifiOff className="w-4 h-4 text-zinc-400" />
+                                    <span>Activación de cuenta disponible solo desde la Red Hospitalaria</span>
+                                </div>
                             )}
                         </div>
 
