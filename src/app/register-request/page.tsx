@@ -18,16 +18,39 @@ import {
   KeyRound,
   Hospital,
   ShieldAlert,
-  WifiOff
+  WifiOff,
+  Calendar,
+  MapPin,
+  Smartphone
 } from "lucide-react";
 import {
   validateStaffIdentityAction,
+  verifyNethosChallengeAction,
   submitAccountActivationRequestAction,
   checkIsInternalNetworkAction
 } from "@/app/actions/account-request";
 
+const SAN_MARTIN_DISTRICTS = [
+  "TARAPOTO",
+  "MORALES",
+  "LA BANDA DE SHILCAYO",
+  "CACATACHI",
+  "LAMAS",
+  "SAN ANTONIO",
+  "SAUCE",
+  "SHAPAJA",
+  "CHAZUTA",
+  "JUANJUI",
+  "MOYOBAMBA",
+  "RIOJA",
+  "BELLAVISTA",
+  "PICOTA",
+  "TOCACHE",
+  "OTRO / FUERA DE SAN MARTIN"
+];
+
 export default function RegisterRequestPage() {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
 
   // Network Verification State
   const [isCheckingIp, setIsCheckingIp] = useState(true);
@@ -50,9 +73,18 @@ export default function RegisterRequestPage() {
     email: string;
     tuitionCode: string;
     professionName: string;
+    nethosHasPhone?: boolean;
+    nethosPhoneMask?: string;
   } | null>(null);
 
-  // Step 2 & 3 Form Data
+  // Step 2 NETHOS Challenge Data
+  const [birthDate, setBirthDate] = useState("");
+  const [district, setDistrict] = useState("");
+  const [phoneLast4, setPhoneLast4] = useState("");
+  const [isVerifyingNethos, setIsVerifyingNethos] = useState(false);
+  const [nethosError, setNethosError] = useState<string | null>(null);
+
+  // Step 3 & 4 Form Data
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -76,7 +108,7 @@ export default function RegisterRequestPage() {
     verifyNetwork();
   }, []);
 
-  // Step 1: Handle Identity Verification
+  // Step 1: Handle Initial DNI & Tuition Verification
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setVerifyError(null);
@@ -99,7 +131,7 @@ export default function RegisterRequestPage() {
       } else if (res.user) {
         setVerifiedUser(res.user);
         setEmail(res.user.email || "");
-        setStep(2);
+        setStep(2); // Move to NETHOS Challenge
       }
     } catch (err) {
       setVerifyError("Ocurrió un problema de conexión. Inténtalo nuevamente.");
@@ -108,8 +140,49 @@ export default function RegisterRequestPage() {
     }
   };
 
-  // Step 2: Validate Contact Info
-  const handleNextToStep3 = (e: React.FormEvent) => {
+  // Step 2: Handle NETHOS Challenge Verification
+  const handleVerifyNethosChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNethosError(null);
+
+    if (!birthDate) {
+      setNethosError("Por favor selecciona tu fecha de nacimiento.");
+      return;
+    }
+
+    if (!district.trim()) {
+      setNethosError("Por favor selecciona o ingresa tu distrito de residencia registrado.");
+      return;
+    }
+
+    if (verifiedUser?.nethosHasPhone && (!phoneLast4 || phoneLast4.length !== 4)) {
+      setNethosError("Por favor ingresa los 4 últimos dígitos de tu celular registrado.");
+      return;
+    }
+
+    setIsVerifyingNethos(true);
+    try {
+      const res = await verifyNethosChallengeAction({
+        dni,
+        birthDate,
+        district,
+        phoneLast4,
+      });
+
+      if (!res.success) {
+        setNethosError(res.message || "Error al convalidar identidad con la ficha NETHOS.");
+      } else {
+        setStep(3); // Advance to Contact Info
+      }
+    } catch (err) {
+      setNethosError("Error de conexión al validar con la base de datos NETHOS.");
+    } finally {
+      setIsVerifyingNethos(false);
+    }
+  };
+
+  // Step 3: Validate Contact Info
+  const handleNextToSecurity = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
@@ -118,10 +191,10 @@ export default function RegisterRequestPage() {
       return;
     }
 
-    setStep(3);
+    setStep(4); // Move to Password step
   };
 
-  // Step 3: Handle Final Submission
+  // Step 4: Handle Final Submission
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -156,7 +229,7 @@ export default function RegisterRequestPage() {
         setSubmitError(res.message || "Ocurrió un problema al enviar la solicitud.");
       } else {
         setSuccessMessage(res.message || "Solicitud enviada correctamente.");
-        setStep(4);
+        setStep(5);
       }
     } catch (err) {
       setSubmitError("Error inesperado al enviar la solicitud.");
@@ -219,7 +292,8 @@ export default function RegisterRequestPage() {
               href="/login"
               className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl text-xs inline-flex items-center gap-2 border border-slate-700 transition-all"
             >
-              <ArrowLeft className="w-4 h-4" /> Volver al Inicio de Sesión
+              <ArrowLeft className="w-4 h-4" />
+              Volver al Iniciar Sesión
             </Link>
           </div>
         </motion.div>
@@ -227,379 +301,485 @@ export default function RegisterRequestPage() {
     );
   }
 
-  // 3. Normal Step Form Screen for Internal Hospital Network
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Dynamic Background Gradients */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Dynamic Background */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Container Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-xl bg-slate-900/90 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl backdrop-blur-xl z-10"
-      >
+      <div className="w-full max-w-xl z-10 space-y-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider mb-3">
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
             <Hospital className="w-3.5 h-3.5" />
-            Hospital II-2 Tarapoto (Red Interna)
+            Hospital II-2 Tarapoto — Sistema CQ
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-2">
-            <ShieldCheck className="w-7 h-7 text-cyan-400" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Activación de Cuenta Asistencial
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Portal de Solicitud de Acceso Web para Personal Quirúrgico
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+            Proceso de habilitación de usuario para personal registrado en la programación quirúrgica.
           </p>
         </div>
 
-        {/* Step Progress Bar */}
-        <div className="flex items-center justify-between mb-8 relative">
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-800 -z-0 -translate-y-1/2" />
-          <div
-            className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500 -z-0 -translate-y-1/2"
-            style={{ width: `${((step - 1) / 3) * 100}%` }}
-          />
-
+        {/* Step Progress Indicator */}
+        <div className="flex items-center justify-between px-2 sm:px-6">
           {[
-            { s: 1, label: "Identidad", icon: Stethoscope },
-            { s: 2, label: "Contacto", icon: Mail },
-            { s: 3, label: "Seguridad", icon: Lock },
-            { s: 4, label: "Confirmación", icon: CheckCircle2 },
-          ].map(({ s, label, icon: Icon }) => {
-            const isCompleted = step > s;
-            const isCurrent = step === s;
+            { s: 1, label: "Identidad" },
+            { s: 2, label: "Desafío NETHOS" },
+            { s: 3, label: "Contacto" },
+            { s: 4, label: "Seguridad" },
+          ].map((st, idx) => {
+            const isCompleted = step > st.s || step === 5;
+            const isCurrent = step === st.s;
             return (
-              <div key={s} className="flex flex-col items-center z-10">
+              <div key={st.s} className="flex items-center gap-2">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                     isCompleted
-                      ? "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/30"
+                      ? "bg-emerald-500 text-slate-950 font-extrabold"
                       : isCurrent
-                      ? "bg-slate-900 border-2 border-cyan-400 text-cyan-400 shadow-md shadow-cyan-500/20"
+                      ? "bg-cyan-500 text-slate-950 ring-4 ring-cyan-500/20"
                       : "bg-slate-800 text-slate-500 border border-slate-700"
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
+                  {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : st.s}
                 </div>
                 <span
-                  className={`text-xs mt-1.5 font-medium ${
-                    isCurrent || isCompleted ? "text-cyan-400" : "text-slate-500"
+                  className={`hidden md:inline text-xs font-medium ${
+                    isCurrent ? "text-cyan-400 font-bold" : isCompleted ? "text-emerald-400" : "text-slate-500"
                   }`}
                 >
-                  {label}
+                  {st.label}
                 </span>
+                {idx < 3 && <div className="w-4 sm:w-8 h-0.5 bg-slate-800 hidden sm:block" />}
               </div>
             );
           })}
         </div>
 
-        {/* Dynamic Step Content */}
-        <AnimatePresence mode="wait">
-          {/* STEP 1: Verify Identity & Tuition Code */}
-          {step === 1 && (
-            <motion.form
-              key="step1"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              onSubmit={handleVerify}
-              className="space-y-5"
-            >
-              <div className="bg-cyan-950/40 border border-cyan-800/40 rounded-xl p-4 text-xs text-cyan-200 flex items-start gap-3">
-                <ShieldCheck className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-                <p>
-                  Para verificar tu identidad sin riesgo de suplantación, ingresa tu <strong>DNI</strong> y tu <strong>Código de Colegiatura Oficial (CMP, CEP, etc.)</strong> pre-registrado en el hospital.
-                </p>
-              </div>
-
-              {verifyError && (
-                <div className="bg-rose-950/60 border border-rose-800/60 rounded-xl p-4 text-xs text-rose-300 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                  <p>{verifyError}</p>
+        {/* Card Container */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <AnimatePresence mode="wait">
+            {/* STEP 1: IDENTIDAD (DNI + COLEGIATURA) */}
+            {step === 1 && (
+              <motion.form
+                key="step1"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                onSubmit={handleVerify}
+                className="space-y-5"
+              >
+                <div className="border-b border-slate-800 pb-4">
+                  <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <UserCheck className="w-5 h-5 text-cyan-400" />
+                    Paso 1: Validación de Personal Asistencial
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Ingresa tus credenciales oficiales para verificar tu registro previo en la base de datos de personal.
+                  </p>
                 </div>
-              )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  DNI (Documento Nacional de Identidad)
-                </label>
-                <div className="relative">
-                  <UserCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="text"
-                    maxLength={8}
-                    value={dni}
-                    onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                    placeholder="Ej: 00811435"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    required
-                  />
-                </div>
-              </div>
+                {verifyError && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{verifyError}</span>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Código de Colegiatura Oficial (CMP / CEP)
-                </label>
-                <div className="relative">
-                  <Stethoscope className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="text"
-                    value={tuitionCode}
-                    onChange={(e) => setTuitionCode(e.target.value)}
-                    placeholder="Ej: CMP 074821"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    required
-                  />
-                </div>
-              </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Número de DNI (8 dígitos)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        maxLength={8}
+                        value={dni}
+                        onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Ej: 45892104"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+                        required
+                      />
+                    </div>
+                  </div>
 
-              <div className="pt-2 flex items-center justify-between">
-                <Link
-                  href="/login"
-                  className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Volver al Login
-                </Link>
-
-                <button
-                  type="submit"
-                  disabled={isVerifying}
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-cyan-600/20 disabled:opacity-50 transition-all"
-                >
-                  {isVerifying ? (
-                    <span>Verificando...</span>
-                  ) : (
-                    <>
-                      <span>Verificar Identidad</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.form>
-          )}
-
-          {/* STEP 2: Contact Details */}
-          {step === 2 && verifiedUser && (
-            <motion.form
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onSubmit={handleNextToStep3}
-              className="space-y-5"
-            >
-              {/* Professional Profile Badge */}
-              <div className="bg-slate-950 border border-cyan-500/30 rounded-xl p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-cyan-400 font-bold text-lg">
-                  {verifiedUser.name.charAt(0)}
-                  {verifiedUser.lastname.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-base">
-                    {verifiedUser.fullName}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                    <span className="text-cyan-400 font-semibold">{verifiedUser.professionName}</span>
-                    <span>•</span>
-                    <span>Colegiatura: <strong className="text-slate-200">{verifiedUser.tuitionCode}</strong></span>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Código de Colegiatura Oficial (CMP, CEP, etc.)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={tuitionCode}
+                        onChange={(e) => setTuitionCode(e.target.value.toUpperCase())}
+                        placeholder="Ej: CMP 074821 o CEP 59841"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+                        required
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {submitError && (
-                <div className="bg-rose-950/60 border border-rose-800/60 rounded-xl p-4 text-xs text-rose-300 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                  <p>{submitError}</p>
+                <div className="pt-2 flex items-center justify-between">
+                  <Link
+                    href="/login"
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Volver al Login
+                  </Link>
+
+                  <button
+                    type="submit"
+                    disabled={isVerifying}
+                    className="bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 text-slate-950 font-bold px-5 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    {isVerifying ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        Verificando...
+                      </>
+                    ) : (
+                      <>
+                        Continuar a Desafío NETHOS <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
+              </motion.form>
+            )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Correo Electrónico (Personal / Institucional)
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="doctor@minsa.gob.pe o correo personal"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    required
-                  />
+            {/* STEP 2: DESAFÍO NETHOS (CONOCIMIENTO PRIVADO) */}
+            {step === 2 && verifiedUser && (
+              <motion.form
+                key="step2"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                onSubmit={handleVerifyNethosChallenge}
+                className="space-y-5"
+              >
+                <div className="border-b border-slate-800 pb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-amber-400" />
+                      Paso 2: Desafío de Identidad Confidencial NETHOS
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800/50">
+                      Anti-Suplantación
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Hola <strong>Dr(a). {verifiedUser.fullName}</strong>. Para prevenir la suplantación de tu cuenta, responde a los siguientes datos confidenciales registrados en tu ficha hospitalaria NETHOS:
+                  </p>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
-                  👉 <strong>Importante:</strong> En este buzón recibirás las notificaciones de tus cirugías programadas por BackCQ.
-                </p>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Teléfono Celular de Contacto (Opcional)
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Ej: 942123456"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                  />
-                </div>
-              </div>
+                {nethosError && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{nethosError}</span>
+                  </div>
+                )}
 
-              <div className="pt-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Anterior
-                </button>
+                <div className="space-y-4">
+                  {/* Desafío 1: Fecha de Nacimiento */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                      1. Fecha de Nacimiento Exacta (Día / Mes / Año)
+                    </label>
+                    <input
+                      type="date"
+                      value={birthDate}
+                      onChange={(e) => setBirthDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+                      required
+                    />
+                  </div>
 
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-cyan-600/20 transition-all"
-                >
-                  <span>Continuar a Seguridad</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.form>
-          )}
+                  {/* Desafío 2: Distrito de Residencia/Nacimiento */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                      2. Distrito de Residencia Registrado en NETHOS
+                    </label>
+                    <select
+                      value={district}
+                      onChange={(e) => setDistrict(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-cyan-500 transition-all"
+                      required
+                    >
+                      <option value="">-- Selecciona tu Distrito --</option>
+                      {SAN_MARTIN_DISTRICTS.map((dist) => (
+                        <option key={dist} value={dist}>
+                          {dist}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-          {/* STEP 3: Password & Security */}
-          {step === 3 && (
-            <motion.form
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onSubmit={handleSubmitRequest}
-              className="space-y-5"
-            >
-              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 space-y-1">
-                <p className="font-semibold text-cyan-400">Establece tu Contraseña Personal de Acceso</p>
-                <p>Esta contraseña te permitirá ingresar a <strong>FrontCQ</strong> y a la plataforma quirúrgica <strong>BackCQ</strong>.</p>
-              </div>
-
-              {submitError && (
-                <div className="bg-rose-950/60 border border-rose-800/60 rounded-xl p-4 text-xs text-rose-300 flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                  <p>{submitError}</p>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Nueva Contraseña
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Confirmar Nueva Contraseña
-                </label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repita la contraseña"
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="text-xs text-slate-400 hover:text-cyan-400 flex items-center gap-1 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Anterior
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50 transition-all"
-                >
-                  {isSubmitting ? (
-                    <span>Enviando Solicitud...</span>
-                  ) : (
-                    <>
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Enviar a Jefatura CQ</span>
-                    </>
+                  {/* Desafío 3: Confirmación de Teléfono Celular (Si existe en NETHOS) */}
+                  {verifiedUser.nethosHasPhone && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                        3. Últimos 4 dígitos de tu Celular ({verifiedUser.nethosPhoneMask})
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={4}
+                        value={phoneLast4}
+                        onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Ej: 5774"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+                        required
+                      />
+                    </div>
                   )}
-                </button>
-              </div>
-            </motion.form>
-          )}
-
-          {/* STEP 4: Success & Confirmation */}
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-4 space-y-5"
-            >
-              <div className="w-16 h-16 bg-emerald-950 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-xl shadow-emerald-500/20">
-                <CheckCircle2 className="w-10 h-10" />
-              </div>
-
-              <h2 className="text-xl font-bold text-white">
-                ¡Solicitud Registrada Exitosamente!
-              </h2>
-
-              <p className="text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
-                {successMessage || "Se ha enviado una alerta de aprobación en 1-Clic a la Jefatura de Centro Quirúrgico. Tan pronto como aprueben tu acceso, podrás ingresar al sistema."}
-              </p>
-
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-xs text-slate-400 text-left space-y-2">
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Profesional:</span>
-                  <strong className="text-white">{verifiedUser?.fullName}</strong>
                 </div>
-                <div className="flex items-center justify-between text-slate-300">
-                  <span>Correo Notificaciones:</span>
-                  <strong className="text-cyan-400">{email}</strong>
-                </div>
-              </div>
 
-              <div className="pt-4">
-                <Link
-                  href="/login"
-                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-8 rounded-xl text-sm inline-flex items-center gap-2 border border-slate-700 transition-all"
-                >
-                  Volver al Inicio de Sesión
-                </Link>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Atrás
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isVerifyingNethos}
+                    className="bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 text-slate-950 font-bold px-5 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    {isVerifyingNethos ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        Convalidando NETHOS...
+                      </>
+                    ) : (
+                      <>
+                        Verificar Identidad <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {/* STEP 3: CONTACTO (CORREO Y TELÉFONO) */}
+            {step === 3 && verifiedUser && (
+              <motion.form
+                key="step3"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                onSubmit={handleNextToSecurity}
+                className="space-y-5"
+              >
+                <div className="border-b border-slate-800 pb-4">
+                  <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <Mail className="w-5 h-5 text-cyan-400" />
+                    Paso 3: Correo Electrónico y Contacto
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Confirma tu correo para recibir las notificaciones y confirmaciones de programación quirúrgica.
+                  </p>
+                </div>
+
+                {submitError && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Correo Electrónico Institucional / Personal
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ejemplo@hospitaltarapoto.gob.pe o usuario@gmail.com"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Número Telefónico / Celular Actual
+                    </label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Ej: 942685774"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Atrás
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    Definir Contraseña <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {/* STEP 4: SEGURIDAD (CONTRASEÑA Y CONFIRMACIÓN) */}
+            {step === 4 && verifiedUser && (
+              <motion.form
+                key="step4"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                onSubmit={handleSubmitRequest}
+                className="space-y-5"
+              >
+                <div className="border-b border-slate-800 pb-4">
+                  <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <KeyRound className="w-5 h-5 text-cyan-400" />
+                    Paso 4: Creación de Contraseña Segura
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Crea tu contraseña de acceso para ingresar al sistema BackCQ / FrontCQ.
+                  </p>
+                </div>
+
+                {submitError && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Nueva Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Mínimo 6 caracteres"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Confirmar Nueva Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repite la contraseña"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" /> Atrás
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 text-slate-950 font-bold px-6 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                        Enviando Solicitud...
+                      </>
+                    ) : (
+                      <>
+                        Enviar Solicitud a Jefatura <CheckCircle2 className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.form>
+            )}
+
+            {/* STEP 5: ÉXITO Y NOTIFICACIÓN */}
+            {step === 5 && (
+              <motion.div
+                key="step5"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-4 space-y-5"
+              >
+                <div className="w-16 h-16 bg-emerald-950 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto text-emerald-400 shadow-xl shadow-emerald-500/20">
+                  <CheckCircle2 className="w-9 h-9" />
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-xl font-extrabold text-white">
+                    ¡Solicitud de Activación Enviada!
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                    {successMessage || "Tu solicitud de activación de cuenta ha sido registrada correctamente."}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-left text-xs space-y-2">
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span>Estado de Solicitud:</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-bold">
+                      PENDIENTE DE APROBACIÓN (JEFATURA CQ)
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span>Notificación Enviada a:</span>
+                    <strong className="text-slate-200">Jefatura / Coordinación CQ</strong>
+                  </div>
+                  <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-900">
+                    💡 La Jefatura de Centro Quirúrgico revisará tu solicitud y la aprobará mediante el sistema de 1-Clic.
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Link
+                    href="/login"
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl text-xs inline-flex items-center gap-2 border border-slate-700 transition-all"
+                  >
+                    Volver a Iniciar Sesión <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }
