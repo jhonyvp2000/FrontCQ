@@ -420,7 +420,50 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
       }
     }
 
-    // Save request in database
+    // 1. Assign role in user_system_roles if not already assigned
+    let role = await db.query.rolesTable.findFirst({
+      where: and(
+        eq(rolesTable.systemId, 'backcq'),
+        eq(rolesTable.name, 'Médico Cirujano')
+      )
+    });
+
+    if (!role) {
+      const newRole = await db.insert(rolesTable).values({
+        systemId: 'backcq',
+        name: 'Médico Cirujano',
+        description: 'Rol para Médicos Cirujanos con acceso a programación de cirugías',
+      }).returning();
+      role = newRole[0];
+    }
+
+    const existingUserRole = await db.query.userSystemRoles.findFirst({
+      where: and(
+        eq(userSystemRoles.userId, user.id),
+        eq(userSystemRoles.systemId, 'backcq')
+      )
+    });
+
+    if (!existingUserRole) {
+      await db.insert(userSystemRoles).values({
+        userId: user.id,
+        systemId: 'backcq',
+        roleId: role.id,
+      });
+    }
+
+    // 2. Direct Automatic Activation: Update user's email, passwordHash, isActive = TRUE
+    await db.update(usersTable)
+      .set({
+        isActive: true,
+        email: cleanEmail,
+        passwordHash,
+        tokenVersion: 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(usersTable.id, user.id));
+
+    // 3. Save approved request in cqAccountRequests
     await db.insert(cqAccountRequests).values({
       userId: user.id,
       dni,
@@ -428,25 +471,30 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
       requestedEmail: cleanEmail,
       phone: cleanPhone,
       newPasswordHash: passwordHash,
-      status: 'PENDING',
+      status: 'APPROVED',
       token,
     });
 
-    // Send 1-Click approval email to Jefatura CQ
+    // 4. Optionally send confirmation email to Jefatura for awareness
     const doctorName = `${user.name} ${user.lastname}`;
-    await sendAccountRequestApprovalEmail({
-      requestToken: token,
-      doctorName,
-      doctorDni: dni,
-      tuitionCode,
-      requestedEmail: cleanEmail,
-      phone,
-      baseUrl: baseUrl || 'http://192.168.41.25:3108',
-    });
+    try {
+      await sendAccountRequestApprovalEmail({
+        requestToken: token,
+        doctorName,
+        doctorDni: dni,
+        tuitionCode,
+        requestedEmail: cleanEmail,
+        phone: cleanPhone || undefined,
+        baseUrl: baseUrl || 'http://192.168.41.25:3108',
+      });
+    } catch (e) {
+      console.warn("No se pudo enviar correo informativo a la Jefatura:", e);
+    }
 
     return {
       success: true,
-      message: `Solicitud registrada exitosamente para el Dr(a). ${doctorName}. Se ha enviado una notificación de aprobación en 1-Clic a la Jefatura de Centro Quirúrgico.`,
+      isDirectlyActivated: true,
+      message: `¡Cuenta activada exitosamente! Bienvenido(a) Dr(a). ${doctorName}. Tu cuenta ha sido habilitada en el sistema. Ya puedes iniciar sesión con tu correo o DNI.`,
       token,
     };
   } catch (error) {

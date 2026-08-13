@@ -174,8 +174,8 @@ export default function RegisterRequestPage() {
     }
   };
 
-  // Step 3: Validate Contact Info
-  const handleNextToSecurity = (e: React.FormEvent) => {
+  // Step 3: Handle Direct Account Activation Submission
+  const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
@@ -191,14 +191,6 @@ export default function RegisterRequestPage() {
       setSubmitError("🔒 El número celular debe ser únicamente numérico y tener exactamente 9 dígitos (ejemplo: 942685774).");
       return;
     }
-
-    setStep(4); // Move to Password step
-  };
-
-  // Step 4: Handle Final Submission
-  const handleSubmitRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitError(null);
 
     if (!password || password.length < 6) {
       setSubmitError("La contraseña debe tener al menos 6 caracteres.");
@@ -227,13 +219,13 @@ export default function RegisterRequestPage() {
       });
 
       if (!res.success) {
-        setSubmitError(res.message || "Ocurrió un problema al enviar la solicitud.");
+        setSubmitError(res.message || "Ocurrió un problema al activar la cuenta.");
       } else {
-        setSuccessMessage(res.message || "Solicitud enviada correctamente.");
-        setStep(5);
+        setSuccessMessage(res.message || "Cuenta activada exitosamente.");
+        setStep(4); // Move to Success Screen directly
       }
     } catch (err) {
-      setSubmitError("Error inesperado al enviar la solicitud.");
+      setSubmitError("Error inesperado al activar la cuenta.");
     } finally {
       setIsSubmitting(false);
     }
@@ -328,10 +320,9 @@ export default function RegisterRequestPage() {
           {[
             { s: 1, label: "Identidad" },
             { s: 2, label: "Actividad CQ" },
-            { s: 3, label: "Contacto" },
-            { s: 4, label: "Seguridad" },
+            { s: 3, label: "Contacto y Seguridad" },
           ].map((st, idx) => {
-            const isCompleted = step > st.s || step === 5;
+            const isCompleted = step > st.s || step === 4;
             const isCurrent = step === st.s;
             return (
               <div key={st.s} className="flex items-center gap-2">
@@ -353,7 +344,7 @@ export default function RegisterRequestPage() {
                 >
                   {st.label}
                 </span>
-                {idx < 3 && <div className="w-4 sm:w-8 h-0.5 bg-slate-800 hidden sm:block" />}
+                {idx < 2 && <div className="w-4 sm:w-8 h-0.5 bg-slate-800 hidden sm:block" />}
               </div>
             );
           })}
@@ -596,23 +587,23 @@ export default function RegisterRequestPage() {
               </motion.form>
             )}
 
-            {/* STEP 3: CONTACTO (CORREO Y TELÉFONO) */}
+            {/* STEP 3: CONTACTO Y CREACIÓN DE CONTRASEÑA (ACTIVACIÓN DIRECTA) */}
             {step === 3 && verifiedUser && (
               <motion.form
                 key="step3"
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                onSubmit={handleNextToSecurity}
+                onSubmit={handleSubmitRequest}
                 className="space-y-5"
               >
                 <div className="border-b border-slate-800 pb-4">
                   <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
                     <Mail className="w-5 h-5 text-cyan-400" />
-                    Paso 3: Correo Electrónico y Contacto
+                    Paso 3: Contacto y Creación de Contraseña
                   </h2>
                   <p className="text-xs text-slate-400 mt-1">
-                    Confirma tu correo para recibir las notificaciones y confirmaciones de programación quirúrgica.
+                    Ingresa tu correo, celular y define tu contraseña de acceso para finalizar la activación de tu cuenta.
                   </p>
                 </div>
 
@@ -651,6 +642,36 @@ export default function RegisterRequestPage() {
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
                     />
                   </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800/80">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Nueva Contraseña de Acceso
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                        Confirmar Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Repite tu contraseña"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="pt-2 flex items-center justify-between">
@@ -664,93 +685,17 @@ export default function RegisterRequestPage() {
 
                   <button
                     type="submit"
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-5 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-cyan-500/20"
-                  >
-                    Definir Contraseña <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.form>
-            )}
-
-            {/* STEP 4: SEGURIDAD (CONTRASEÑA Y CONFIRMACIÓN) */}
-            {step === 4 && verifiedUser && (
-              <motion.form
-                key="step4"
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                onSubmit={handleSubmitRequest}
-                className="space-y-5"
-              >
-                <div className="border-b border-slate-800 pb-4">
-                  <h2 className="text-base font-bold text-slate-200 flex items-center gap-2">
-                    <KeyRound className="w-5 h-5 text-cyan-400" />
-                    Paso 4: Creación de Contraseña Segura
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Crea tu contraseña de acceso para ingresar al sistema BackCQ / FrontCQ.
-                  </p>
-                </div>
-
-                {submitError && (
-                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-start gap-2.5">
-                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <span>{submitError}</span>
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Nueva Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Confirmar Nueva Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repite la contraseña"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep(3)}
-                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 transition-colors"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Atrás
-                  </button>
-
-                  <button
-                    type="submit"
                     disabled={isSubmitting}
                     className="bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 text-slate-950 font-bold px-6 py-3 rounded-xl text-xs inline-flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
                   >
                     {isSubmitting ? (
                       <>
                         <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                        Enviando Solicitud...
+                        Activando Cuenta...
                       </>
                     ) : (
                       <>
-                        Enviar Solicitud a Jefatura <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-4 h-4" /> Finalizar y Activar Cuenta
                       </>
                     )}
                   </button>
@@ -758,10 +703,10 @@ export default function RegisterRequestPage() {
               </motion.form>
             )}
 
-            {/* STEP 5: ÉXITO Y NOTIFICACIÓN */}
-            {step === 5 && (
+            {/* STEP 4: ÉXITO Y ACTIVACIÓN DIRECTA */}
+            {step === 4 && (
               <motion.div
-                key="step5"
+                key="step4"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-4 space-y-5"
@@ -772,35 +717,35 @@ export default function RegisterRequestPage() {
 
                 <div className="space-y-2">
                   <h2 className="text-xl font-extrabold text-white">
-                    ¡Solicitud de Activación Enviada!
+                    ¡Cuenta Habilitada Exitosamente!
                   </h2>
                   <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                    {successMessage || "Tu solicitud de activación de cuenta ha sido registrada correctamente."}
+                    {successMessage || "Tu cuenta de usuario ha sido activada de manera automática. Ya puedes ingresar a los sistemas FrontCQ y BackCQ."}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-left text-xs space-y-2">
                   <div className="flex justify-between items-center text-slate-400">
-                    <span>Estado de Solicitud:</span>
-                    <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-bold">
-                      PENDIENTE DE APROBACIÓN (JEFATURA CQ)
+                    <span>Estado de la Cuenta:</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-bold">
+                      HABILITADO / ACTIVO
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-400">
-                    <span>Notificación Enviada a:</span>
-                    <strong className="text-slate-200">Jefatura / Coordinación CQ</strong>
+                    <span>Usuario Asistencial:</span>
+                    <strong className="text-slate-200">{verifiedUser?.fullName}</strong>
                   </div>
                   <div className="text-[11px] text-slate-400 pt-1 border-t border-slate-900">
-                    💡 La Jefatura de Centro Quirúrgico revisará tu solicitud y la aprobará mediante el sistema de 1-Clic.
+                    💡 La convalidación del desafío quirúrgico garantizó tu identidad. Tu acceso ha sido habilitado sin requerir tiempos de espera.
                   </div>
                 </div>
 
                 <div className="pt-2">
                   <Link
                     href="/login"
-                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl text-xs inline-flex items-center gap-2 border border-slate-700 transition-all"
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold py-3 px-6 rounded-xl text-xs inline-flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all font-bold"
                   >
-                    Volver a Iniciar Sesión <ArrowRight className="w-4 h-4" />
+                    Iniciar Sesión en FrontCQ <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </motion.div>
