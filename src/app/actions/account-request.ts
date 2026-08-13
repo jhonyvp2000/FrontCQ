@@ -49,12 +49,12 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
     const cleanDni = data.dni.trim();
     const cleanTuitionCode = data.tuitionCode.trim().toUpperCase();
 
-    if (!cleanDni || cleanDni.length !== 8) {
-      return { success: false, message: "El número de DNI debe contener exactamente 8 dígitos." };
+    if (!cleanDni || cleanDni.length < 6 || cleanDni.length > 12) {
+      return { success: false, message: "El número de DNI o Carnet de Extranjería debe contener entre 6 y 12 caracteres." };
     }
 
-    if (!cleanTuitionCode) {
-      return { success: false, message: "Por favor ingresa tu código de colegiatura oficial (CMP, CEP, etc.)." };
+    if (!cleanTuitionCode || cleanTuitionCode.length > 12) {
+      return { success: false, message: "El código de colegiatura oficial no debe exceder los 12 caracteres." };
     }
 
     // 0. Check Block Status for DNI
@@ -202,12 +202,12 @@ export async function verifySurgicalChallengeAction(data: VerifySurgicalChalleng
     const cleanPatientDni = data.patientDni.trim();
     const inputSurgeryDate = data.surgeryDate.trim(); // YYYY-MM-DD
 
-    if (!cleanStaffDni || cleanStaffDni.length !== 8) {
-      return { success: false, message: "DNI de usuario no válido." };
+    if (!cleanStaffDni || cleanStaffDni.length < 6 || cleanStaffDni.length > 12) {
+      return { success: false, message: "DNI o Carnet de Extranjería no válido." };
     }
 
-    if (!cleanPatientDni || cleanPatientDni.length < 8) {
-      return { success: false, message: "Por favor ingresa un número de DNI de paciente válido (8 dígitos)." };
+    if (!cleanPatientDni || cleanPatientDni.length < 6 || cleanPatientDni.length > 12) {
+      return { success: false, message: "Por favor ingresa un número de DNI o Carnet de Extranjería del paciente válido (entre 6 y 12 caracteres)." };
     }
 
     if (!inputSurgeryDate) {
@@ -360,8 +360,9 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
     const { userId, dni, tuitionCode, email, phone, password, baseUrl } = data;
 
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { success: false, message: "Por favor ingrese un correo electrónico válido." };
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      return { success: false, message: "🔒 Por favor ingresa un correo electrónico con formato válido (ejemplo: usuario@dominio.com)." };
     }
 
     if (!password || password.length < 6) {
@@ -396,6 +397,14 @@ export async function submitAccountActivationRequestAction(data: SubmitAccountAc
     const cleanPhone = phone?.trim() || null;
 
     if (cleanPhone && cleanPhone.length > 0) {
+      // Validate phone format: numbers only, exactly 9 digits
+      if (!/^\d{9}$/.test(cleanPhone)) {
+        return {
+          success: false,
+          message: "🔒 El número celular debe contener únicamente caracteres numéricos y tener exactamente 9 dígitos."
+        };
+      }
+
       const existingPhoneRequest = await db.query.cqAccountRequests.findFirst({
         where: and(
           eq(cqAccountRequests.phone, cleanPhone),

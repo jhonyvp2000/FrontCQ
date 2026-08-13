@@ -99,13 +99,13 @@ export default function RegisterRequestPage() {
     setIsPermanentlyBlocked(false);
     setIsTemporarilyBlocked(false);
 
-    if (!dni || dni.length !== 8) {
-      setVerifyError("El DNI debe tener exactamente 8 dígitos.");
+    if (!dni || dni.length < 6 || dni.length > 12) {
+      setVerifyError("El DNI o Carnet de Extranjería debe contener entre 6 y 12 caracteres.");
       return;
     }
 
-    if (!tuitionCode.trim()) {
-      setVerifyError("Por favor ingresa tu código de colegiatura profesional (Ej: CMP 074821).");
+    if (!tuitionCode.trim() || tuitionCode.trim().length > 12) {
+      setVerifyError("El código de colegiatura oficial no debe exceder los 12 caracteres.");
       return;
     }
 
@@ -136,8 +136,8 @@ export default function RegisterRequestPage() {
     e.preventDefault();
     setSurgicalError(null);
 
-    if (!patientDni || patientDni.length !== 8) {
-      setSurgicalError("El DNI del paciente debe contener 8 dígitos.");
+    if (!patientDni || patientDni.length < 6 || patientDni.length > 12) {
+      setSurgicalError("El DNI o Carnet de Extranjería del paciente debe contener entre 6 y 12 caracteres.");
       return;
     }
 
@@ -179,8 +179,16 @@ export default function RegisterRequestPage() {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!email || !email.includes("@")) {
-      setSubmitError("Ingresa un correo electrónico válido.");
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setSubmitError("🔒 Por favor ingresa un correo electrónico con formato válido (ejemplo: usuario@dominio.com).");
+      return;
+    }
+
+    const cleanPhone = phone.trim();
+    if (cleanPhone.length > 0 && cleanPhone.length !== 9) {
+      setSubmitError("🔒 El número celular debe ser únicamente numérico y tener exactamente 9 dígitos (ejemplo: 942685774).");
       return;
     }
 
@@ -394,16 +402,16 @@ export default function RegisterRequestPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Número de DNI (8 dígitos)
+                      Número de DNI / Carnet de Extranjería (Máximo 12 caracteres)
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        maxLength={8}
+                        maxLength={12}
                         disabled={isPermanentlyBlocked || isTemporarilyBlocked}
                         value={dni}
-                        onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Ej: 45892104"
+                        onChange={(e) => setDni(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
+                        placeholder="Ej: 45892104 o 000123456789"
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono disabled:opacity-50"
                         required
                       />
@@ -412,14 +420,15 @@ export default function RegisterRequestPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Código de Colegiatura Oficial (CMP, CEP, etc.)
+                      Código de Colegiatura Oficial (Máximo 12 caracteres)
                     </label>
                     <div className="relative">
                       <input
                         type="text"
+                        maxLength={12}
                         disabled={isPermanentlyBlocked || isTemporarilyBlocked}
                         value={tuitionCode}
-                        onChange={(e) => setTuitionCode(e.target.value.toUpperCase())}
+                        onChange={(e) => setTuitionCode(e.target.value.toUpperCase().slice(0, 12))}
                         placeholder="Ej: CMP 074821 o CEP 59841"
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono disabled:opacity-50"
                         required
@@ -501,19 +510,19 @@ export default function RegisterRequestPage() {
                 {/* CASO A: SI POSEE HISTORIAL QUIRÚRGICO REGISTRADO EN BACKCQ */}
                 {verifiedUser.hasSurgeryHistory ? (
                   <div className="space-y-4">
-                    {/* Campo 1: DNI del Paciente */}
+                    {/* Campo 1: DNI o Carnet de Extranjería del Paciente */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-cyan-400" />
-                        1. DNI de un Paciente Atendido / Operado por Ud. en Quirófano
+                        1. DNI / Carnet de Extranjería de un Paciente Atendido / Operado por Ud.
                       </label>
                       <input
                         type="text"
-                        maxLength={8}
+                        maxLength={12}
                         disabled={isPermanentlyBlocked || isTemporarilyBlocked}
                         value={patientDni}
-                        onChange={(e) => setPatientDni(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Ej: 74852910 (8 dígitos del paciente)"
+                        onChange={(e) => setPatientDni(e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase())}
+                        placeholder="Ej: 74852910 o 000987654321"
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono disabled:opacity-50"
                         required
                       />
@@ -631,12 +640,13 @@ export default function RegisterRequestPage() {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      Número Telefónico / Celular Actual
+                      Número Telefónico / Celular Actual (Opcional - Exactamente 9 dígitos numéricos)
                     </label>
                     <input
                       type="tel"
+                      maxLength={9}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 9))}
                       placeholder="Ej: 942685774"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 transition-all font-mono"
                     />
