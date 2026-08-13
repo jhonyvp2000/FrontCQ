@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, WifiOff } from "lucide-react";
+import { checkIsInternalNetworkAction } from "@/app/actions/account-request";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -12,6 +13,7 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isInternalNetwork, setIsInternalNetwork] = useState<boolean | null>(null);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -26,6 +28,16 @@ export default function LoginPage() {
                 setSuccessMsg("Tu contraseña ha sido cambiada con éxito. Por favor, inicia sesión con tu nueva clave.");
             }
         }
+
+        async function verifyNetwork() {
+            try {
+                const res = await checkIsInternalNetworkAction();
+                setIsInternalNetwork(res.isInternal);
+            } catch (err) {
+                setIsInternalNetwork(false);
+            }
+        }
+        verifyNetwork();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +50,7 @@ export default function LoginPage() {
                 redirect: false,
                 dni,
                 password,
+                callbackUrl: "/"
             });
 
             if (res?.error) {
@@ -176,7 +189,24 @@ export default function LoginPage() {
                             </button>
                         </form>
 
-                        <div className="mt-10 text-center">
+                        <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800 text-center">
+                            {isInternalNetwork === false ? (
+                                <div className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700/50 cursor-not-allowed">
+                                    <WifiOff className="w-4 h-4 text-zinc-400" />
+                                    <span>Activación de cuenta disponible solo desde la Red Hospitalaria</span>
+                                </div>
+                            ) : (
+                                <a
+                                    href="/register-request"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/50 hover:bg-cyan-100 dark:hover:bg-cyan-900/60 border border-cyan-200 dark:border-cyan-800/50 transition-all shadow-sm"
+                                >
+                                    <ShieldCheck className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                                    ¿Eres personal asistencial? Activa tu cuenta aquí
+                                </a>
+                            )}
+                        </div>
+
+                        <div className="mt-6 text-center">
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                 ¿Problemas de acceso? Contacta a <span className="font-bold text-[var(--color-hospital-blue)] cursor-pointer">Informática</span>.
                             </p>

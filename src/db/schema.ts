@@ -231,3 +231,20 @@ export const cqUbigeo = pgTable("cq_ubigeo", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Solicitudes de Activación / Auto-Habilitación de Cuentas Asistenciales
+export const cqAccountRequests = pgTable("cq_account_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
+  dni: varchar("dni", { length: 20 }).notNull(),
+  tuitionCode: varchar("tuition_code", { length: 50 }).notNull(),
+  requestedEmail: text("requested_email").notNull(),
+  requestedPhone: varchar("phone", { length: 20 }),
+  newPasswordHash: text("new_password_hash").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default('PENDING'), // PENDING, APPROVED, REJECTED
+  token: text("token").notNull().unique(),
+  approvedBy: uuid("approved_by").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
