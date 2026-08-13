@@ -98,18 +98,18 @@ export async function sendAccountRequestApprovalEmail(params: SendAccountRequest
             Seleccione la opción de aprobación según desde dónde está accediendo:
           </p>
 
-          <!-- Opción 1: Celular 4G / Casa (Internet Pública) -->
+          <!-- Opción 1: Acceso desde Internet / Red Externa -->
           <div class="actions-box">
             <div style="font-size: 12px; font-weight: 700; color: #15803d; margin-bottom: 6px;">
-              📱 Opción A: Desde Celular 4G / Casa (Internet Externa)
+              🌐 Opción 1: Acceso desde Red Externa (Internet fuera del Hospital)
             </div>
-            <a href="${externalApprovalUrl}" class="btn-approve-ext">✔ Aprobar Acceso (4G / Internet)</a>
+            <a href="${externalApprovalUrl}" class="btn-approve-ext">✔ Aprobar Acceso (Red Externa)</a>
           </div>
 
-          <!-- Opción 2: PC Interna del Hospital -->
+          <!-- Opción 2: Acceso desde Red Interna del Hospital -->
           <div class="actions-box">
             <div style="font-size: 12px; font-weight: 700; color: #0369a1; margin-bottom: 6px;">
-              💻 Opción B: Desde PC dentro de la Red del Hospital (192.168.x.x)
+              🏥 Opción 2: Acceso desde Red Interna del Hospital (192.168.x.x)
             </div>
             <a href="${internalApprovalUrl}" class="btn-approve-int">✔ Aprobar Acceso (Red Interna)</a>
           </div>
