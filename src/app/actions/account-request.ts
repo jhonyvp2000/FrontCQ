@@ -508,12 +508,21 @@ export async function processAccountApprovalAction(token: string, action: 'appro
       role = newRole[0];
     }
 
-    // 2. Assign system role in user_system_roles
-    await db.insert(userSystemRoles).values({
-      userId: request.userId,
-      systemId: 'backcq',
-      roleId: role.id,
-    }).onConflictDoNothing();
+    // 2. Assign system role in user_system_roles if not already assigned
+    const existingUserRole = await db.query.userSystemRoles.findFirst({
+      where: and(
+        eq(userSystemRoles.userId, request.userId),
+        eq(userSystemRoles.systemId, 'backcq')
+      )
+    });
+
+    if (!existingUserRole) {
+      await db.insert(userSystemRoles).values({
+        userId: request.userId,
+        systemId: 'backcq',
+        roleId: role.id,
+      });
+    }
 
     // 3. Update user's email, passwordHash, isActive status, and updatedAt
     await db.update(usersTable)
