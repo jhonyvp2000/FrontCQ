@@ -35,6 +35,9 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [datePreset, setDatePreset] = useState("ALL");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -86,9 +89,72 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
       result = result.filter(item => item.roleInSurgery === roleFilter);
     }
 
+    // Date Range Filtering
+    if (datePreset !== "ALL") {
+      const now = new Date();
+
+      if (datePreset === "TODAY") {
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        result = result.filter(item => {
+          if (!item.surgeryDate) return false;
+          const d = new Date(item.surgeryDate);
+          return d >= startOfDay && d <= endOfDay;
+        });
+      } else if (datePreset === "THIS_WEEK") {
+        const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek + 1);
+        const endOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - dayOfWeek), 23, 59, 59, 999);
+        result = result.filter(item => {
+          if (!item.surgeryDate) return false;
+          const d = new Date(item.surgeryDate);
+          return d >= startOfWeek && d <= endOfWeek;
+        });
+      } else if (datePreset === "THIS_MONTH") {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        result = result.filter(item => {
+          if (!item.surgeryDate) return false;
+          const d = new Date(item.surgeryDate);
+          return d >= startOfMonth && d <= endOfMonth;
+        });
+      } else if (datePreset === "LAST_MONTH") {
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        result = result.filter(item => {
+          if (!item.surgeryDate) return false;
+          const d = new Date(item.surgeryDate);
+          return d >= startOfLastMonth && d <= endOfLastMonth;
+        });
+      } else if (datePreset === "THIS_YEAR") {
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        result = result.filter(item => {
+          if (!item.surgeryDate) return false;
+          const d = new Date(item.surgeryDate);
+          return d >= startOfYear && d <= endOfYear;
+        });
+      } else if (datePreset === "CUSTOM") {
+        if (startDate) {
+          const start = new Date(startDate + "T00:00:00");
+          result = result.filter(item => {
+            if (!item.surgeryDate) return false;
+            return new Date(item.surgeryDate) >= start;
+          });
+        }
+        if (endDate) {
+          const end = new Date(endDate + "T23:59:59.999");
+          result = result.filter(item => {
+            if (!item.surgeryDate) return false;
+            return new Date(item.surgeryDate) <= end;
+          });
+        }
+      }
+    }
+
     setFilteredHistory(result);
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, roleFilter, history]);
+  }, [searchTerm, statusFilter, roleFilter, datePreset, startDate, endDate, history]);
 
   const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -420,6 +486,22 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
             <FileText size={14} /> PDF
           </button>
 
+          {/* Date Filter Dropdown */}
+          <select
+            value={datePreset}
+            onChange={(e) => setDatePreset(e.target.value)}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="ALL">🗓️ Todas las Fechas</option>
+            <option value="TODAY">🟢 Hoy</option>
+            <option value="THIS_WEEK">📅 Esta Semana</option>
+            <option value="THIS_MONTH">📆 Este Mes</option>
+            <option value="LAST_MONTH">⏪ Mes Anterior</option>
+            <option value="THIS_YEAR">📊 Año {new Date().getFullYear()}</option>
+            <option value="CUSTOM">🔍 Rango Personalizado...</option>
+          </select>
+
+          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -444,6 +526,48 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           </select>
         </div>
       </div>
+
+      {/* Custom Date Range Picker Expanded Bar */}
+      {datePreset === "CUSTOM" && (
+        <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-blue-50/60 dark:bg-zinc-800/60 border border-blue-200/80 dark:border-zinc-700">
+          <span className="text-xs font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+            <Calendar size={14} className="text-blue-600 dark:text-blue-400" /> Rango Personalizado:
+          </span>
+
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Desde:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Hasta:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+
+          {(startDate || endDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setStartDate("");
+                setEndDate("");
+              }}
+              className="px-2 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <XCircle size={14} /> Limpiar Rango
+            </button>
+          )}
+        </div>
+      )}
 
       {/* History Table */}
       <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-white dark:bg-zinc-900 shadow-sm">
