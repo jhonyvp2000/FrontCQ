@@ -33,7 +33,7 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: UserProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"profile" | "activity" | "password">("profile");
+  const [activeTab, setActiveTab] = useState<"activity" | "profile" | "password">("activity");
 
   // Form State
   const [loading, setLoading] = useState(true);
@@ -234,18 +234,6 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 shrink-0 gap-1">
             <button
               type="button"
-              onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === "profile"
-                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
-              }`}
-            >
-              <User size={15} /> Contacto
-            </button>
-
-            <button
-              type="button"
               onClick={() => setActiveTab("activity")}
               className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "activity"
@@ -254,6 +242,18 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
               }`}
             >
               <Activity size={15} /> Mi Actividad Quirúrgica
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
+                activeTab === "profile"
+                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+              }`}
+            >
+              <User size={15} /> Contacto
             </button>
 
             <button
