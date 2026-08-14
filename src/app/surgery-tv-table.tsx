@@ -1431,25 +1431,25 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                                     )}
                                                                 </span>
                                                             )}
-                                                            {row.surgery.surgeryType && (
-                                                                <span className={`${forceTvMode ? 'ml-1' : 'mt-1.5 block'}`}>
-                                                                    <span className={`text-[9px] inline-block px-1.5 py-0.5 rounded border font-bold uppercase text-center ${row.surgery.surgeryType === 'Cirugía Mayor' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
-                                                                        {row.surgery.surgeryType}
-                                                                    </span>
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="hidden px-3 py-3 whitespace-nowrap align-middle">
                                                         <div className="flex flex-col gap-1 items-start">
-                                                            {row.surgery.surgeryType && (
-                                                                <div className={`text-[9px] inline-block px-1.5 py-0.5 rounded border font-bold uppercase text-center ${row.surgery.surgeryType === 'Cirugía Mayor' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
-                                                                    {row.surgery.surgeryType}
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className={`align-middle ${forceTvMode ? 'py-1 px-1 max-w-[650px]' : 'py-3 px-3 min-w-[330px] max-w-[430px]'}`}>
+                                                        <div className="flex flex-wrap items-center gap-1 mb-2">
+                                                            {row.surgery.surgeryType && (
+                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${row.surgery.surgeryType.toLowerCase().includes('mayor') ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                                                    {row.surgery.surgeryType}
+                                                                </span>
+                                                            )}
+                                                            {row.surgery.urgencyType && (
+                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${row.surgery.urgencyType.toUpperCase() === 'EMERGENCIA' ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                                                    {row.surgery.urgencyType}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {forceTvMode ? (
                                                             (() => {
                                                                 const items: React.ReactNode[] = [];
