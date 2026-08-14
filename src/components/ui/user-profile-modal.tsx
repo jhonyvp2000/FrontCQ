@@ -15,13 +15,15 @@ import {
   AlertCircle, 
   Loader2, 
   Search,
-  ShieldCheck
+  ShieldCheck,
+  Activity
 } from "lucide-react";
 import { 
   getUserProfileSelfAction, 
   getUbigeoSuggestionsAction, 
   updateUserProfileSelfAction 
 } from "@/app/actions/account-request";
+import { UserActivityDashboard } from "@/components/ui/user-activity-dashboard";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -31,7 +33,7 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: UserProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "activity" | "password">("profile");
 
   // Form State
   const [loading, setLoading] = useState(true);
@@ -203,7 +205,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-8"
+          className={`relative w-full ${activeTab === "activity" ? "max-w-4xl" : "max-w-lg"} bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-8 transition-all duration-300`}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 dark:bg-zinc-850 border-b border-zinc-200 dark:border-zinc-800">
@@ -213,10 +215,10 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
               </div>
               <div>
                 <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
-                  Mi Perfil de Usuario
+                  Mi Perfil y Producción Asistencial
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Actualiza tus datos de contacto y seguridad
+                  Gestión de datos de contacto, estadísticas e historial quirúrgico
                 </p>
               </div>
             </div>
@@ -229,11 +231,11 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2">
+          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "profile"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -241,10 +243,23 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
             >
               <User size={15} /> Contacto y Profesión
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("activity")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === "activity"
+                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+              }`}
+            >
+              <Activity size={15} /> Mi Actividad Quirúrgica
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab("password")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === "password"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -435,6 +450,11 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                   </div>
                 )}
 
+                {/* TAB 3: User Activity Dashboard */}
+                {activeTab === "activity" && (
+                  <UserActivityDashboard userId={userId} />
+                )}
+
                 {/* Footer Buttons */}
                 <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                   <button
@@ -443,21 +463,23 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                     disabled={submitting}
                     className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
                   >
-                    Cancelar
+                    {activeTab === "activity" ? "Cerrar" : "Cancelar"}
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" /> Guardando...
-                      </>
-                    ) : (
-                      "Guardar Cambios"
-                    )}
-                  </button>
+                  {activeTab !== "activity" && (
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" /> Guardando...
+                        </>
+                      ) : (
+                        "Guardar Cambios"
+                      )}
+                    </button>
+                  )}
                 </div>
               </>
             )}
