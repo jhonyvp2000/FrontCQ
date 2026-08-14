@@ -19,6 +19,7 @@ import {
   UserCheck
 } from "lucide-react";
 import { getUserSurgeryStatsAction, getUserSurgeryHistoryAction } from "@/app/actions/user-analytics";
+import * as XLSX from "xlsx";
 
 interface UserActivityDashboardProps {
   userId: string;
@@ -106,48 +107,55 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
   const handleExportExcel = () => {
     if (filteredHistory.length === 0) return;
 
-    const headers = ["Fecha", "Sala", "Paciente", "Historia Clinica", "DNI", "Diagnostico", "Procedimiento / Intervencion", "Tipo Cirugia", "Urgencia", "Rol Asistencial", "Estado"];
-
-    const escapeCsvField = (val: string) => {
-      if (!val) return '""';
-      const clean = String(val).replace(/"/g, '""');
-      return `"${clean}"`;
-    };
-
-    const rows = filteredHistory.map(item => {
+    // Build enriched data rows
+    const exportData = filteredHistory.map((item, index) => {
       const dateStr = item.surgeryDate 
         ? new Date(item.surgeryDate).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : "";
-      const patientName = item.patient?.name || "";
-      const hc = item.patient?.hcNumber || "";
-      const dni = item.patient?.dni || "";
       const statusLabel = item.status === 'completed' ? 'Realizada' : item.status === 'cancelled' ? 'Suspendida' : 'Programada';
 
-      return [
-        escapeCsvField(dateStr),
-        escapeCsvField(item.roomName),
-        escapeCsvField(patientName),
-        escapeCsvField(hc),
-        escapeCsvField(dni),
-        escapeCsvField(item.diagnosis),
-        escapeCsvField(item.procedure),
-        escapeCsvField(item.surgeryType),
-        escapeCsvField(item.urgencyType),
-        escapeCsvField(item.roleInSurgery),
-        escapeCsvField(statusLabel),
-      ].join(",");
+      return {
+        "N°": index + 1,
+        "Fecha Cirugía": dateStr,
+        "Quirófano / Sala": item.roomName || "",
+        "Paciente": item.patient?.name || "",
+        "Historia Clínica": item.patient?.hcNumber || "",
+        "DNI Paciente": item.patient?.dni || "",
+        "Diagnóstico": item.diagnosis || "",
+        "Procedimiento / Intervención": item.procedure || "",
+        "Tipo Cirugía": item.surgeryType || "",
+        "Urgencia": item.urgencyType || "",
+        "Rol Asistencial": item.roleInSurgery || "",
+        "Estado": statusLabel,
+      };
     });
 
-    const csvContent = "\uFEFF" + [headers.map(escapeCsvField).join(","), ...rows].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    // Create Worksheet & set column widths
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    const colWidths = [
+      { wch: 6 },   // N°
+      { wch: 15 },  // Fecha
+      { wch: 20 },  // Sala
+      { wch: 25 },  // Paciente
+      { wch: 18 },  // HC
+      { wch: 14 },  // DNI
+      { wch: 40 },  // Diagnostico
+      { wch: 45 },  // Procedimiento
+      { wch: 18 },  // Tipo
+      { wch: 15 },  // Urgencia
+      { wch: 26 },  // Rol
+      { wch: 15 },  // Estado
+    ];
+    worksheet["!cols"] = colWidths;
+
+    // Create Workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Actividad Quirúrgica");
+
+    // Save as true native .xlsx file
     const todayStr = new Date().toISOString().split("T")[0];
-    link.href = url;
-    link.setAttribute("download", `Reporte_Actividad_Quirurgica_${todayStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, `Reporte_Actividad_Quirurgica_${todayStr}.xlsx`);
   };
 
   const handleExportPDF = () => {
