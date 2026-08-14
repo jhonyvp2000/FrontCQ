@@ -1438,18 +1438,6 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                         </div>
                                                     </td>
                                                     <td className={`align-middle ${forceTvMode ? 'py-1 px-1 max-w-[650px]' : 'py-3 px-3 min-w-[330px] max-w-[430px]'}`}>
-                                                        <div className="flex flex-wrap items-center gap-1 mb-2">
-                                                            {row.surgery.surgeryType && (
-                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${row.surgery.surgeryType.toLowerCase().includes('mayor') ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
-                                                                    {row.surgery.surgeryType}
-                                                                </span>
-                                                            )}
-                                                            {row.surgery.urgencyType && (
-                                                                <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${row.surgery.urgencyType.toUpperCase() === 'EMERGENCIA' ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
-                                                                    {row.surgery.urgencyType}
-                                                                </span>
-                                                            )}
-                                                        </div>
                                                         {forceTvMode ? (
                                                             (() => {
                                                                 const items: React.ReactNode[] = [];
@@ -1468,6 +1456,26 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                                     items.push(
                                                                         <span key="cancellation" className="text-red-600 dark:text-red-400 font-bold border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-full inline-block text-[9px]" title={row.surgery.cancellationReason}>
                                                                             Motivo Suspensión: {row.surgery.cancellationReason}
+                                                                        </span>
+                                                                    );
+                                                                }
+
+                                                                // 1.6. Tipo Operación (Cirugía Mayor / Cirugía Menor)
+                                                                if (row.surgery.surgeryType) {
+                                                                    const isMayor = row.surgery.surgeryType.toLowerCase().includes('mayor');
+                                                                    items.push(
+                                                                        <span key="surgeryType" className={`text-[9px] px-1.5 py-[0.5px] rounded border font-bold uppercase inline-flex items-center leading-none align-middle ${isMayor ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200/60 dark:border-blue-800/60' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'}`}>
+                                                                            {row.surgery.surgeryType}
+                                                                        </span>
+                                                                    );
+                                                                }
+
+                                                                // 1.7. Tipo Cirugía (Emergencia / Electivo)
+                                                                if (row.surgery.urgencyType) {
+                                                                    const isEmergencia = row.surgery.urgencyType.toUpperCase() === 'EMERGENCIA';
+                                                                    items.push(
+                                                                        <span key="urgencyType" className={`text-[9px] px-1.5 py-[0.5px] rounded border font-bold uppercase inline-flex items-center leading-none align-middle ${isEmergencia ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-800/60' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'}`}>
+                                                                            {row.surgery.urgencyType}
                                                                         </span>
                                                                     );
                                                                 }
@@ -1586,10 +1594,28 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                                                                     </div>
                                                                 )}
 
-                                                                {/* 5. Tipo de anestesia */}
-                                                                {row.surgery.anesthesiaType && (
-                                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                                        {row.surgery.anesthesiaType.split(',').filter(Boolean).map((typeCode: string) => {
+                                                                {/* Badges de Tipo de Operación, Tipo de Cirugía (Urgencia) y Anestesia en la misma fila al final del contenido */}
+                                                                {(row.surgery.surgeryType || row.surgery.urgencyType || row.surgery.anesthesiaType) && (
+                                                                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                                                                        {row.surgery.surgeryType && (() => {
+                                                                            const isMayor = row.surgery.surgeryType.toLowerCase().includes('mayor');
+                                                                            return (
+                                                                                <span key="surgeryType" className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${isMayor ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                                                                    {row.surgery.surgeryType}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
+
+                                                                        {row.surgery.urgencyType && (() => {
+                                                                            const isEmergencia = row.surgery.urgencyType.toUpperCase() === 'EMERGENCIA';
+                                                                            return (
+                                                                                <span key="urgencyType" className={`text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase shadow-sm inline-flex items-center leading-none ${isEmergencia ? 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'}`}>
+                                                                                    {row.surgery.urgencyType}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
+
+                                                                        {row.surgery.anesthesiaType && row.surgery.anesthesiaType.split(',').filter(Boolean).map((typeCode: string) => {
                                                                             const trimmed = typeCode.trim();
                                                                             const anesthesiaMap: Record<string, string> = {
                                                                                 'RAQ': 'Raquídea',
