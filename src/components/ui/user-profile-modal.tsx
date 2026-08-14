@@ -67,6 +67,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
   // Load Profile on Open
   useEffect(() => {
     if (isOpen && userId) {
+      setActiveTab("activity");
       loadProfileData();
     } else {
       resetForm();
@@ -97,7 +98,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
   };
 
   const resetForm = () => {
-    setActiveTab("profile");
+    setActiveTab("activity");
     setErrorMessage("");
     setSuccessMessage("");
     setCurrentPassword("");
