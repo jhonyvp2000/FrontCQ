@@ -29,10 +29,12 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
   const [history, setHistory] = useState<any[]>([]);
   const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
 
-  // Filter States
+  // Filter & Pagination States
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     if (userId) {
@@ -83,7 +85,12 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
     }
 
     setFilteredHistory(result);
+    setCurrentPage(1);
   }, [searchTerm, statusFilter, roleFilter, history]);
+
+  const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedHistory = filteredHistory.slice(startIndex, startIndex + itemsPerPage);
 
   if (loading) {
     return (
@@ -271,7 +278,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-              {filteredHistory.length === 0 ? (
+              {paginatedHistory.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
                     <FileText size={32} className="mx-auto mb-2 opacity-50" />
@@ -279,7 +286,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
                   </td>
                 </tr>
               ) : (
-                filteredHistory.map((item) => {
+                paginatedHistory.map((item) => {
                   const dateStr = item.surgeryDate 
                     ? new Date(item.surgeryDate).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
                     : "Fecha n/a";
@@ -384,6 +391,39 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {filteredHistory.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 border-t border-zinc-200 dark:border-zinc-800 rounded-b-2xl text-xs text-zinc-600 dark:text-zinc-400">
+            <p className="font-semibold text-[11px]">
+              Mostrando <span className="font-bold text-zinc-900 dark:text-white">{startIndex + 1}</span> a <span className="font-bold text-zinc-900 dark:text-white">{Math.min(startIndex + itemsPerPage, filteredHistory.length)}</span> de <span className="font-bold text-zinc-900 dark:text-white">{filteredHistory.length}</span> cirugías
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 font-bold disabled:opacity-40 transition-all text-xs cursor-pointer disabled:cursor-not-allowed"
+              >
+                &larr; Anterior
+              </button>
+              
+              <span className="font-mono font-bold text-xs px-2 text-zinc-700 dark:text-zinc-300">
+                Página {currentPage} de {totalPages || 1}
+              </span>
+
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                className="px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 font-bold disabled:opacity-40 transition-all text-xs cursor-pointer disabled:cursor-not-allowed"
+              >
+                Siguiente &rarr;
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

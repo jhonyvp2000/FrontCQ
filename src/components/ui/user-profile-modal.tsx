@@ -205,13 +205,13 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className={`relative w-full ${activeTab === "activity" ? "max-w-4xl" : "max-w-lg"} bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-8 transition-all duration-300`}
+          className={`relative w-full ${activeTab === "activity" ? "max-w-5xl md:max-w-6xl" : "max-w-xl"} bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-4 max-h-[90vh] flex flex-col transition-all duration-300`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 dark:bg-zinc-850 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 dark:bg-zinc-850 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[var(--color-hospital-blue)] dark:text-blue-400">
-                <User size={22} />
+                <User size={20} />
               </div>
               <div>
                 <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
@@ -231,23 +231,23 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 overflow-x-auto">
+          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 shrink-0 gap-1">
             <button
               type="button"
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "profile"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
               }`}
             >
-              <User size={15} /> Contacto y Profesión
+              <User size={15} /> Contacto
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("activity")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "activity"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -259,18 +259,18 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
             <button
               type="button"
               onClick={() => setActiveTab("password")}
-              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
+              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "password"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
               }`}
             >
-              <Lock size={15} /> Seguridad / Contraseña
+              <Lock size={15} /> Seguridad
             </button>
           </div>
 
           {/* Form Content */}
-          <form onSubmit={handleSubmit} className="p-6">
+          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
                 <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
