@@ -694,13 +694,15 @@ export async function getUserProfileSelfAction(userId: string) {
       }
     }
 
-    // Check phone from cqAccountRequests or user record
-    let phone = "";
-    const req = await db.query.cqAccountRequests.findFirst({
-      where: eq(cqAccountRequests.userId, userId)
-    });
-    if (req?.phone) {
-      phone = req.phone;
+    // Check phone from usersTable.phoneNumber or fallback to cqAccountRequests.phone
+    let phone = user.phoneNumber || "";
+    if (!phone) {
+      const req = await db.query.cqAccountRequests.findFirst({
+        where: eq(cqAccountRequests.userId, userId)
+      });
+      if (req?.phone) {
+        phone = req.phone;
+      }
     }
 
     return {
@@ -819,7 +821,14 @@ export async function updateUserProfileSelfAction(data: UpdateUserProfileInput) 
         )
       });
 
-      if (existingPhoneRequest) {
+      const existingPhoneUser = await db.query.usersTable.findFirst({
+        where: and(
+          eq(usersTable.phoneNumber, cleanPhone),
+          ne(usersTable.id, userId)
+        )
+      });
+
+      if (existingPhoneRequest || existingPhoneUser) {
         return {
           success: false,
           message: `🔒 El número celular '${cleanPhone}' ya está registrado por otro usuario. Ingresa tu número personal o déjalo en blanco.`,
@@ -866,6 +875,7 @@ export async function updateUserProfileSelfAction(data: UpdateUserProfileInput) 
     // 6. Execute atomic DB updates
     const userUpdatePayload: any = {
       email: cleanEmail,
+      phoneNumber: cleanPhone,
       updatedAt: new Date(),
     };
     if (updatedPasswordHash) {
