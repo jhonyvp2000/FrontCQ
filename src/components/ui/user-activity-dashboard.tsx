@@ -160,7 +160,25 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           </div>
         </div>
 
-        {/* Card 3: Cancelled / Suspended */}
+        {/* Card 3: Scheduled / In Progress */}
+        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Programadas / En Curso</span>
+            <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
+              <Clock size={16} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">
+              {stats?.scheduledSurgeries || 0}
+            </p>
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
+              Cirugías pendientes o activas
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Cancelled / Suspended */}
         <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Suspendidas</span>
@@ -173,32 +191,32 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
               {stats?.cancelledSurgeries || 0}
             </p>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
-              Cirugías no realizadas
+              Cirugías no ejecutadas
             </p>
           </div>
         </div>
+      </div>
 
-        {/* Card 4: Urgency Distribution */}
-        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Emergencia / Electivo</span>
-            <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400">
-              <Award size={16} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-zinc-900 dark:text-white">
-              <span className="px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 text-[10px]">
-                {stats?.urgencyBreakdown?.emergencia || 0} E
-              </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px]">
-                {stats?.urgencyBreakdown?.electivo || 0} EL
-              </span>
-            </div>
-            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
-              Tipo de Cirugía
-            </p>
-          </div>
+      {/* Breakdown Chips Row */}
+      <div className="p-3.5 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Tipo Cirugía:</span>
+          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+            Mayor: {stats?.typeBreakdown?.mayor || 0}
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+            Menor: {stats?.typeBreakdown?.menor || 0}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Urgencia:</span>
+          <span className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-bold">
+            Emergencia: {stats?.urgencyBreakdown?.emergencia || 0}
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+            Electivo: {stats?.urgencyBreakdown?.electivo || 0}
+          </span>
         </div>
       </div>
 
