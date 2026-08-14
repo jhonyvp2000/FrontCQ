@@ -722,17 +722,17 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     {currentUser && (
                         <button
                             onClick={() => setIsProfileModalOpen(true)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm hidden md:flex shrink-0 select-none cursor-pointer transition-all group"
+                            className="flex items-center gap-2 p-1.5 md:px-3 md:py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm shrink-0 select-none cursor-pointer transition-all group"
                             title="Editar mi perfil y datos de contacto"
                         >
-                            <div className="w-6 h-6 rounded-full bg-[var(--color-hospital-blue)] text-white text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
+                            <div className="w-7 h-7 md:w-6 md:h-6 rounded-full bg-[var(--color-hospital-blue)] text-white text-xs md:text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
                                 {(() => {
                                     const n = currentUser.name?.trim().charAt(0) || "";
                                     const l = currentUser.lastname?.trim().charAt(0) || "";
                                     return `${n}${l}`.toUpperCase();
                                 })()}
                             </div>
-                            <div className="flex flex-col text-left">
+                            <div className="hidden md:flex flex-col text-left">
                                 <span className="text-xs font-bold text-zinc-800 dark:text-zinc-250 leading-tight flex items-center gap-1">
                                     {currentUser.name} {currentUser.lastname}
                                     <User size={12} className="text-zinc-400 group-hover:text-blue-500 transition-colors" />
