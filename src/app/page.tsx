@@ -9,6 +9,7 @@ import { checkSession } from "@/lib/auth-helpers";
 export default async function Home({ searchParams }: { searchParams: Promise<{ sort?: string, date?: string, dateNew?: string }> }) {
     const session = await checkSession();
     const currentUser = session?.user ? {
+        id: (session.user as any).id || (session.user as any).userId || "",
         name: session.user.name || "",
         lastname: (session.user as any).lastname || ""
     } : null;

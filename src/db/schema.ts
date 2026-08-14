@@ -55,6 +55,7 @@ export const staffProfiles = pgTable("staff_profiles", {
   userId: uuid("user_id").primaryKey().references(() => usersTable.id, { onDelete: 'cascade' }),
   professionId: uuid("profession_id").notNull().references(() => professions.id, { onDelete: 'restrict' }),
   tuitionCode: varchar("tuition_code", { length: 50 }), // CMP, CEP, etc.
+  ubigeoCode: varchar("ubigeo_code", { length: 6 }), // 6-digit INEI code (referencing cqUbigeo)
 });
 
 // Domain-specific BackCQ Tables (Prefix cq_)

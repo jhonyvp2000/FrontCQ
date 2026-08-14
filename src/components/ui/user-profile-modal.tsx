@@ -1,0 +1,469 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  X, 
+  User, 
+  Mail, 
+  Phone, 
+  Award, 
+  MapPin, 
+  Lock, 
+  Key, 
+  CheckCircle2, 
+  AlertCircle, 
+  Loader2, 
+  Search,
+  ShieldCheck
+} from "lucide-react";
+import { 
+  getUserProfileSelfAction, 
+  getUbigeoSuggestionsAction, 
+  updateUserProfileSelfAction 
+} from "@/app/actions/account-request";
+
+interface UserProfileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string;
+  onProfileUpdated?: () => void;
+}
+
+export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: UserProfileModalProps) {
+  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
+
+  // Form State
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // Read-only user data
+  const [name, setName] = useState("");
+  const [lastname, setLastname] = useState("");
+  const [dni, setDni] = useState("");
+  const [professionName, setProfessionName] = useState("");
+
+  // Editable fields
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [tuitionCode, setTuitionCode] = useState("");
+  
+  // Ubigeo search & selection
+  const [ubigeoCode, setUbigeoCode] = useState("");
+  const [ubigeoSearchText, setUbigeoSearchText] = useState("");
+  const [ubigeoSuggestions, setUbigeoSuggestions] = useState<Array<{ code: string; departamento: string; provincia: string; distrito: string; label: string }>>([]);
+  const [isSearchingUbigeo, setIsSearchingUbigeo] = useState(false);
+  const [showUbigeoDropdown, setShowUbigeoDropdown] = useState(false);
+
+  // Password fields
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Load Profile on Open
+  useEffect(() => {
+    if (isOpen && userId) {
+      loadProfileData();
+    } else {
+      resetForm();
+    }
+  }, [isOpen, userId]);
+
+  const loadProfileData = async () => {
+    setLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    const res = await getUserProfileSelfAction(userId);
+    if (res.success && res.profile) {
+      setName(res.profile.name);
+      setLastname(res.profile.lastname);
+      setDni(res.profile.dni);
+      setProfessionName(res.profile.professionName);
+
+      setEmail(res.profile.email);
+      setPhone(res.profile.phone || "");
+      setTuitionCode(res.profile.tuitionCode || "");
+      setUbigeoCode(res.profile.ubigeoCode || "");
+      setUbigeoSearchText(res.profile.ubigeoLabel || "");
+    } else {
+      setErrorMessage(res.message || "No se pudo cargar la información del perfil.");
+    }
+    setLoading(false);
+  };
+
+  const resetForm = () => {
+    setActiveTab("profile");
+    setErrorMessage("");
+    setSuccessMessage("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setUbigeoSuggestions([]);
+    setShowUbigeoDropdown(false);
+  };
+
+  // Handle Ubigeo Search
+  const handleUbigeoSearchChange = async (val: string) => {
+    setUbigeoSearchText(val);
+    if (!val || val.trim().length < 2) {
+      setUbigeoSuggestions([]);
+      setShowUbigeoDropdown(false);
+      return;
+    }
+
+    setIsSearchingUbigeo(true);
+    const res = await getUbigeoSuggestionsAction(val);
+    if (res.success && res.suggestions) {
+      setUbigeoSuggestions(res.suggestions);
+      setShowUbigeoDropdown(true);
+    }
+    setIsSearchingUbigeo(false);
+  };
+
+  const handleSelectUbigeo = (code: string, label: string) => {
+    setUbigeoCode(code);
+    setUbigeoSearchText(label);
+    setShowUbigeoDropdown(false);
+  };
+
+  // Handle Form Submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    // Front validations
+    if (!email || !email.includes("@")) {
+      setErrorMessage("Por favor ingresa una dirección de correo electrónico válida.");
+      return;
+    }
+
+    if (phone && !/^\d{9}$/.test(phone.trim())) {
+      setErrorMessage("El número celular debe contener exactamente 9 dígitos numéricos.");
+      return;
+    }
+
+    if (newPassword || confirmPassword || currentPassword) {
+      if (!currentPassword) {
+        setErrorMessage("Debes ingresar tu contraseña actual para establecer una nueva.");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setErrorMessage("La nueva contraseña y su confirmación no coinciden.");
+        return;
+      }
+      if (newPassword.length < 6) {
+        setErrorMessage("La nueva contraseña debe tener al menos 6 caracteres.");
+        return;
+      }
+    }
+
+    setSubmitting(true);
+
+    const result = await updateUserProfileSelfAction({
+      userId,
+      email,
+      phone,
+      tuitionCode,
+      ubigeoCode,
+      currentPassword: currentPassword || undefined,
+      newPassword: newPassword || undefined,
+    });
+
+    if (result.success) {
+      setSuccessMessage(result.message);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      if (onProfileUpdated) {
+        onProfileUpdated();
+      }
+
+      setTimeout(() => {
+        onClose();
+      }, 1800);
+    } else {
+      setErrorMessage(result.message);
+    }
+
+    setSubmitting(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-8"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 dark:bg-zinc-850 border-b border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-[var(--color-hospital-blue)] dark:text-blue-400">
+                <User size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
+                  Mi Perfil de Usuario
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Actualiza tus datos de contacto y seguridad
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-200/50 dark:hover:bg-zinc-800 transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("profile")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
+                activeTab === "profile"
+                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+              }`}
+            >
+              <User size={15} /> Contacto y Profesión
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("password")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
+                activeTab === "password"
+                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
+                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
+              }`}
+            >
+              <Lock size={15} /> Seguridad / Contraseña
+            </button>
+          </div>
+
+          {/* Form Content */}
+          <form onSubmit={handleSubmit} className="p-6">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12 text-zinc-500">
+                <Loader2 size={32} className="animate-spin text-blue-600 mb-3" />
+                <p className="text-xs font-semibold">Cargando información de tu perfil...</p>
+              </div>
+            ) : (
+              <>
+                {/* Alert Messages */}
+                {errorMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium flex items-start gap-2.5">
+                    <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs font-medium flex items-center gap-2.5">
+                    <CheckCircle2 size={16} className="shrink-0" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                {/* TAB 1: Contact & Staff Data */}
+                {activeTab === "profile" && (
+                  <div className="space-y-4">
+                    {/* Read-Only Info Card */}
+                    <div className="p-3.5 rounded-xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                          Profesional Registrado
+                        </p>
+                        <p className="text-sm font-bold text-zinc-900 dark:text-white">
+                          {name} {lastname}
+                        </p>
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                          DNI: <span className="font-mono font-semibold">{dni}</span> {professionName ? `• ${professionName}` : ""}
+                        </p>
+                      </div>
+                      <ShieldCheck size={28} className="text-emerald-500/80" />
+                    </div>
+
+                    {/* Email Input */}
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Mail size={14} className="text-zinc-400" /> Correo Electrónico
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="ejemplo: doctor@gmail.com"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Phone Input */}
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Phone size={14} className="text-zinc-400" /> Teléfono / Celular (9 dígitos)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={9}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                        placeholder="Ejemplo: 955662693"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all font-mono"
+                      />
+                    </div>
+
+                    {/* Tuition Code Input */}
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Award size={14} className="text-zinc-400" /> Código de Colegiatura Oficial (CMP / CEP)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={12}
+                        value={tuitionCode}
+                        onChange={(e) => setTuitionCode(e.target.value.toUpperCase())}
+                        placeholder="Ejemplo: 61872"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all font-mono uppercase"
+                      />
+                    </div>
+
+                    {/* Ubigeo Autocomplete Input */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <MapPin size={14} className="text-zinc-400" /> Ubigeo / Distrito de Residencia
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={ubigeoSearchText}
+                          onChange={(e) => handleUbigeoSearchChange(e.target.value)}
+                          onFocus={() => {
+                            if (ubigeoSuggestions.length > 0) setShowUbigeoDropdown(true);
+                          }}
+                          placeholder="Escribe tu distrito (ej: Tarapoto, Morales, etc.)"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white pr-8 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        />
+                        <div className="absolute right-2.5 top-2.5 text-zinc-400">
+                          {isSearchingUbigeo ? (
+                            <Loader2 size={14} className="animate-spin text-blue-500" />
+                          ) : (
+                            <Search size={14} />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Dropdown Suggestions */}
+                      {showUbigeoDropdown && ubigeoSuggestions.length > 0 && (
+                        <div className="absolute z-20 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                          {ubigeoSuggestions.map((item) => (
+                            <button
+                              key={item.code}
+                              type="button"
+                              onClick={() => handleSelectUbigeo(item.code, item.label)}
+                              className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-zinc-700/60 text-zinc-800 dark:text-zinc-200 border-b border-zinc-100 dark:border-zinc-750 last:border-none"
+                            >
+                              <p className="font-semibold">{item.distrito}</p>
+                              <p className="text-[10px] text-zinc-400">{item.departamento} / {item.provincia} • Code: {item.code}</p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 2: Change Password */}
+                {activeTab === "password" && (
+                  <div className="space-y-4">
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-xs font-medium">
+                      🔒 Ingresa tu contraseña actual únicamente si deseas establecer una nueva contraseña de acceso.
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Key size={14} className="text-zinc-400" /> Contraseña Actual
+                      </label>
+                      <input
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Lock size={14} className="text-zinc-400" /> Nueva Contraseña (mínimo 6 caracteres)
+                      </label>
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                        <Lock size={14} className="text-zinc-400" /> Confirmar Nueva Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={submitting}
+                    className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Guardando...
+                      </>
+                    ) : (
+                      "Guardar Cambios"
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+}

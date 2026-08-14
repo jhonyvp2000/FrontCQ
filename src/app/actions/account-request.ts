@@ -11,9 +11,10 @@ import {
   cqSurgeries,
   cqSurgeryTeam,
   cqPatientPii,
-  cqAccountRequestBlocks
+  cqAccountRequestBlocks,
+  cqUbigeo
 } from "@/db/schema";
-import { eq, and, sql, gt } from "drizzle-orm";
+import { eq, and, sql, gt, or, ilike, ne } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendAccountRequestApprovalEmail } from "@/lib/email-service";
@@ -651,3 +652,267 @@ export async function processAccountApprovalAction(token: string, action: 'appro
     return { success: false, message: "Ocurrió un error al procesar la aprobación." };
   }
 }
+
+// ==========================================
+// MÓDULO DE AUTO-GESTIÓN DE PERFIL DE USUARIO
+// ==========================================
+
+export async function getUserProfileSelfAction(userId: string) {
+  try {
+    if (!userId) {
+      return { success: false, message: "Identificador de usuario no proporcionado." };
+    }
+
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId)
+    });
+
+    if (!user) {
+      return { success: false, message: "Usuario no encontrado." };
+    }
+
+    const staffProfile = await db.query.staffProfiles.findFirst({
+      where: eq(staffProfiles.userId, userId)
+    });
+
+    let professionName = "";
+    if (staffProfile?.professionId) {
+      const prof = await db.query.professions.findFirst({
+        where: eq(professions.id, staffProfile.professionId)
+      });
+      if (prof) professionName = prof.name;
+    }
+
+    let ubigeoLabel = "";
+    let ubigeoCode = staffProfile?.ubigeoCode || "";
+    if (ubigeoCode) {
+      const ubi = await db.query.cqUbigeo.findFirst({
+        where: eq(cqUbigeo.code, ubigeoCode)
+      });
+      if (ubi) {
+        ubigeoLabel = `${ubi.departamento} / ${ubi.provincia} / ${ubi.distrito}`;
+      }
+    }
+
+    // Check phone from cqAccountRequests or user record
+    let phone = "";
+    const req = await db.query.cqAccountRequests.findFirst({
+      where: eq(cqAccountRequests.userId, userId)
+    });
+    if (req?.phone) {
+      phone = req.phone;
+    }
+
+    return {
+      success: true,
+      profile: {
+        id: user.id,
+        dni: user.dni,
+        name: user.name,
+        lastname: user.lastname,
+        email: user.email || "",
+        phone: phone,
+        tuitionCode: staffProfile?.tuitionCode || "",
+        professionName: professionName,
+        ubigeoCode: ubigeoCode,
+        ubigeoLabel: ubigeoLabel,
+      }
+    };
+  } catch (error) {
+    console.error("Error en getUserProfileSelfAction:", error);
+    return { success: false, message: "Error al obtener información del perfil." };
+  }
+}
+
+export async function getUbigeoSuggestionsAction(query: string) {
+  try {
+    const cleanQuery = query.trim();
+    if (!cleanQuery || cleanQuery.length < 2) {
+      return { success: true, suggestions: [] };
+    }
+
+    const results = await db.select()
+      .from(cqUbigeo)
+      .where(
+        or(
+          ilike(cqUbigeo.distrito, `%${cleanQuery}%`),
+          ilike(cqUbigeo.provincia, `%${cleanQuery}%`),
+          ilike(cqUbigeo.departamento, `%${cleanQuery}%`),
+          ilike(cqUbigeo.code, `${cleanQuery}%`)
+        )
+      )
+      .limit(12);
+
+    const suggestions = results.map(u => ({
+      code: u.code,
+      departamento: u.departamento,
+      provincia: u.provincia,
+      distrito: u.distrito,
+      label: `${u.departamento} / ${u.provincia} / ${u.distrito} (${u.code})`
+    }));
+
+    return { success: true, suggestions };
+  } catch (error) {
+    console.error("Error en getUbigeoSuggestionsAction:", error);
+    return { success: false, suggestions: [] };
+  }
+}
+
+export interface UpdateUserProfileInput {
+  userId: string;
+  email: string;
+  phone?: string;
+  tuitionCode?: string;
+  ubigeoCode?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export async function updateUserProfileSelfAction(data: UpdateUserProfileInput) {
+  try {
+    const { userId, email, phone, tuitionCode, ubigeoCode, currentPassword, newPassword } = data;
+
+    if (!userId) {
+      return { success: false, message: "Identificador de usuario no válido." };
+    }
+
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId)
+    });
+
+    if (!user) {
+      return { success: false, message: "Usuario no encontrado." };
+    }
+
+    // 1. Validate Email Format and Uniqueness
+    const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      return { success: false, message: "Ingresa una dirección de correo electrónico válida (ejemplo: usuario@dominio.com)." };
+    }
+
+    const existingEmailUser = await db.query.usersTable.findFirst({
+      where: and(
+        eq(usersTable.email, cleanEmail),
+        ne(usersTable.id, userId)
+      )
+    });
+
+    if (existingEmailUser) {
+      return {
+        success: false,
+        message: `🔒 El correo '${cleanEmail}' ya se encuentra registrado por otro usuario (${existingEmailUser.name} ${existingEmailUser.lastname}).`,
+      };
+    }
+
+    // 2. Validate Phone Format and Uniqueness
+    const cleanPhone = phone?.trim() || null;
+    if (cleanPhone && cleanPhone.length > 0) {
+      if (!/^\d{9}$/.test(cleanPhone)) {
+        return { success: false, message: "El número celular debe contener exactamente 9 dígitos numéricos sin letras ni guiones." };
+      }
+
+      const existingPhoneRequest = await db.query.cqAccountRequests.findFirst({
+        where: and(
+          eq(cqAccountRequests.phone, cleanPhone),
+          ne(cqAccountRequests.userId, userId)
+        )
+      });
+
+      if (existingPhoneRequest) {
+        return {
+          success: false,
+          message: `🔒 El número celular '${cleanPhone}' ya está registrado por otro usuario. Ingresa tu número personal o déjalo en blanco.`,
+        };
+      }
+    }
+
+    // 3. Validate Tuition Code
+    const cleanTuitionCode = tuitionCode?.trim().toUpperCase() || null;
+    if (cleanTuitionCode && cleanTuitionCode.length > 12) {
+      return { success: false, message: "El código de colegiatura no debe exceder los 12 caracteres." };
+    }
+
+    // 4. Validate Ubigeo Code
+    const cleanUbigeoCode = ubigeoCode?.trim() || null;
+    if (cleanUbigeoCode && cleanUbigeoCode.length > 0) {
+      const ubiExists = await db.query.cqUbigeo.findFirst({
+        where: eq(cqUbigeo.code, cleanUbigeoCode)
+      });
+      if (!ubiExists) {
+        return { success: false, message: "El código de Ubigeo seleccionado no existe en el catálogo nacional." };
+      }
+    }
+
+    // 5. Password Update logic (if requested)
+    let updatedPasswordHash: string | undefined = undefined;
+    if (newPassword && newPassword.trim().length > 0) {
+      if (!currentPassword || currentPassword.trim().length === 0) {
+        return { success: false, message: "Para cambiar tu contraseña debes ingresar tu contraseña actual." };
+      }
+
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isPasswordValid) {
+        return { success: false, message: "La contraseña actual ingresada es incorrecta." };
+      }
+
+      if (newPassword.length < 6) {
+        return { success: false, message: "La nueva contraseña debe tener al menos 6 caracteres." };
+      }
+
+      updatedPasswordHash = await bcrypt.hash(newPassword, 10);
+    }
+
+    // 6. Execute atomic DB updates
+    const userUpdatePayload: any = {
+      email: cleanEmail,
+      updatedAt: new Date(),
+    };
+    if (updatedPasswordHash) {
+      userUpdatePayload.passwordHash = updatedPasswordHash;
+    }
+
+    await db.update(usersTable)
+      .set(userUpdatePayload)
+      .where(eq(usersTable.id, userId));
+
+    // Update staff_profiles (tuition_code & ubigeo_code)
+    const existingStaff = await db.query.staffProfiles.findFirst({
+      where: eq(staffProfiles.userId, userId)
+    });
+
+    if (existingStaff) {
+      await db.update(staffProfiles)
+        .set({
+          tuitionCode: cleanTuitionCode,
+          ubigeoCode: cleanUbigeoCode,
+        })
+        .where(eq(staffProfiles.userId, userId));
+    }
+
+    // Update cq_account_requests sync if request row exists
+    const existingReq = await db.query.cqAccountRequests.findFirst({
+      where: eq(cqAccountRequests.userId, userId)
+    });
+
+    if (existingReq) {
+      await db.update(cqAccountRequests)
+        .set({
+          requestedEmail: cleanEmail,
+          phone: cleanPhone,
+          tuitionCode: cleanTuitionCode || existingReq.tuitionCode,
+          updatedAt: new Date(),
+        })
+        .where(eq(cqAccountRequests.userId, userId));
+    }
+
+    return {
+      success: true,
+      message: "¡Perfil y datos de contacto actualizados exitosamente!",
+    };
+  } catch (error) {
+    console.error("Error en updateUserProfileSelfAction:", error);
+    return { success: false, message: "Ocurrió un error inesperado al actualizar tu perfil." };
+  }
+}
+
