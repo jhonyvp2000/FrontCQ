@@ -15,6 +15,7 @@ import {
   Loader2, 
   AlertCircle,
   FileText,
+  FileSpreadsheet,
   UserCheck
 } from "lucide-react";
 import { getUserSurgeryStatsAction, getUserSurgeryHistoryAction } from "@/app/actions/user-analytics";
@@ -101,7 +102,139 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
     );
   }
 
-  // Distinct roles in user's history for filter dropdown
+  // Export handlers for filtered records
+  const handleExportExcel = () => {
+    if (filteredHistory.length === 0) return;
+
+    const headers = ["Fecha", "Sala", "Paciente", "Historia Clinica", "DNI", "Diagnostico", "Procedimiento / Intervencion", "Tipo Cirugia", "Urgencia", "Rol Asistencial", "Estado"];
+
+    const escapeCsvField = (val: string) => {
+      if (!val) return '""';
+      const clean = String(val).replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filteredHistory.map(item => {
+      const dateStr = item.surgeryDate 
+        ? new Date(item.surgeryDate).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        : "";
+      const patientName = item.patient?.name || "";
+      const hc = item.patient?.hcNumber || "";
+      const dni = item.patient?.dni || "";
+      const statusLabel = item.status === 'completed' ? 'Realizada' : item.status === 'cancelled' ? 'Suspendida' : 'Programada';
+
+      return [
+        escapeCsvField(dateStr),
+        escapeCsvField(item.roomName),
+        escapeCsvField(patientName),
+        escapeCsvField(hc),
+        escapeCsvField(dni),
+        escapeCsvField(item.diagnosis),
+        escapeCsvField(item.procedure),
+        escapeCsvField(item.surgeryType),
+        escapeCsvField(item.urgencyType),
+        escapeCsvField(item.roleInSurgery),
+        escapeCsvField(statusLabel),
+      ].join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.map(escapeCsvField).join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const todayStr = new Date().toISOString().split("T")[0];
+    link.href = url;
+    link.setAttribute("download", `Reporte_Actividad_Quirurgica_${todayStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPDF = () => {
+    if (filteredHistory.length === 0) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const todayStr = new Date().toLocaleDateString('es-PE', { day: '2-digit', month: 'long', year: 'numeric' });
+
+    const rowsHtml = filteredHistory.map(item => {
+      const dateStr = item.surgeryDate 
+        ? new Date(item.surgeryDate).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+        : "";
+      const statusLabel = item.status === 'completed' ? 'Realizada' : item.status === 'cancelled' ? 'Suspendida' : 'Programada';
+      const statusColor = item.status === 'completed' ? '#059669' : item.status === 'cancelled' ? '#dc2626' : '#2563eb';
+
+      return `
+        <tr>
+          <td>${dateStr}<br/><small style="color:#666">${item.roomName}</small></td>
+          <td><b>${item.patient?.name || ''}</b><br/><small style="color:#666">${item.patient?.hcNumber || ''}</small></td>
+          <td><b>${item.procedure}</b><br/><small style="color:#666">Dx: ${item.diagnosis}</small></td>
+          <td><b>${item.surgeryType}</b> / ${item.urgencyType}</td>
+          <td><span style="background:#f3f4f6;padding:3px 6px;border-radius:4px;font-weight:bold">${item.roleInSurgery}</span></td>
+          <td style="text-align:right;font-weight:bold;color:${statusColor}">${statusLabel}</td>
+        </tr>
+      `;
+    }).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Reporte de Actividad Quirúrgica - OGESS / MINSA</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+          .header { text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; margin-bottom: 20px; }
+          .header h2 { margin: 0; color: #0056b3; font-size: 18px; }
+          .header p { margin: 4px 0 0; color: #555; font-size: 12px; }
+          .meta { margin-bottom: 15px; font-size: 12px; color: #444; display: flex; justify-content: space-between; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th { background: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left; padding: 8px; font-size: 10px; text-transform: uppercase; color: #475569; }
+          td { border-bottom: 1px solid #e2e8f0; padding: 8px; vertical-align: top; }
+          .footer { margin-top: 25px; text-align: right; font-size: 10px; color: #888; border-top: 1px solid #eee; padding-top: 8px; }
+          @media print {
+            body { margin: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>HOSPITAL II-2 TARAPOTO - CENTRAL QUIRÚRGICA</h2>
+          <p>Reporte Oficial de Actividad Quirúrgica y Producción Asistencial</p>
+        </div>
+        <div class="meta">
+          <div><b>Fecha de Emisión:</b> ${todayStr} | <b>Total Registros:</b> ${filteredHistory.length}</div>
+          <div><b>Conforme a Ley N° 29733 (Protección de Datos Personales)</b></div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha / Sala</th>
+              <th>Paciente / HC</th>
+              <th>Intervención / Diagnóstico</th>
+              <th>Tipo / Urgencia</th>
+              <th>Rol Asistencial</th>
+              <th style="text-align:right">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+        <div class="footer">
+          Documento generado automáticamente desde el Sistema FrontCQ • OGESS San Martín
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const uniqueRoles = Array.from(new Set(history.map(h => h.roleInSurgery)));
 
   return (
@@ -255,8 +388,30 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           <Search size={14} className="absolute left-2.5 top-2.5 text-zinc-400" />
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        {/* Export Buttons & Filters */}
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          {/* Excel Export Button */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar registros filtrados a Excel"
+          >
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+
+          {/* PDF Export Button */}
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar / Imprimir reporte filtrado en PDF"
+          >
+            <FileText size={14} /> PDF
+          </button>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
