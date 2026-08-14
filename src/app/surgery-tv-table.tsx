@@ -758,18 +758,20 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             {isListFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                         </button>
                     )}
-                    <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex items-center border border-zinc-200 dark:border-zinc-700 shadow-inner">
+                    <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex items-center gap-1 border border-zinc-200 dark:border-zinc-700 shadow-inner">
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                            title="Vista Lista"
+                            className={`flex items-center justify-center p-2 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                         >
-                            <ListIcon size={16} /> Lista
+                            <ListIcon size={16} />
                         </button>
                         <button
                             onClick={() => { setViewMode('timeline'); setIsListFullscreen(false); }}
-                            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'timeline' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                            title="Vista Timeline (Línea de Tiempo)"
+                            className={`flex items-center justify-center p-2 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'timeline' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
                         >
-                            <LayoutGrid size={16} /> Timeline
+                            <LayoutGrid size={16} />
                         </button>
                     </div>
                 </div>
