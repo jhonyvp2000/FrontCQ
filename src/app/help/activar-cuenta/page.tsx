@@ -395,7 +395,9 @@ export default function HelpActivateAccountPage() {
         <div className="pt-6 text-center border-t border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-left">
             <p className="text-xs font-bold text-white">Hospital II-2 Tarapoto</p>
-            <p className="text-[11px] text-zinc-500">Oficina de Estadística e Informática • OGESS Bajo Mayo</p>
+            <p className="text-[11px] text-zinc-500">
+              Oficina de Estadística e Informática • OGESS Bajo Mayo <span className="ml-2 text-blue-400 font-mono text-[10px] bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800/60">v1.2 (Fecha Exacta)</span>
+            </p>
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
