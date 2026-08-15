@@ -64,11 +64,11 @@ export default function HelpActivateAccountPage() {
     },
     {
       question: "¿Por qué el formulario de solicitud debe llenarse desde la Red del Hospital?",
-      answer: "Por strictly políticas de seguridad del Ministerio de Salud (MINSA) y la Ley N° 29733 de Protección de Datos Personales, la verificación de cirugías e historia clínica del paciente requiere que el equipo esté conectado a la Intranet institucional (192.168.x.x)."
+      answer: "Por estrictas políticas de seguridad del Ministerio de Salud (MINSA) y la Ley N° 29733 de Protección de Datos Personales, la verificación de cirugías e historia clínica del paciente requiere que el equipo esté conectado a la Intranet institucional (192.168.x.x)."
     },
     {
       question: "¿Qué es el 'Reto Quirúrgico de Seguridad'?",
-      answer: "Es un mecanismo automático que comprueba que tú eres realmente el profesional médico. Te solicitará ingresar el DNI de un paciente y la fecha aproximada de una cirugía en la que hayas participado previamente."
+      answer: "Es un mecanismo automático que comprueba que tú eres realmente el profesional médico. Te solicitará ingresar el DNI de un paciente y la fecha exacta de una cirugía en la que hayas participado previamente."
     },
     {
       question: "¿Qué ocurre si me equivoco 3 veces en el Reto Quirúrgico?",
@@ -240,7 +240,7 @@ export default function HelpActivateAccountPage() {
                   Reto Quirúrgico de Seguridad
                 </h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Para confirmar tu identidad, responde al desafío ingresando el <strong className="text-zinc-200">DNI de un paciente</strong> y la <strong className="text-zinc-200">fecha aproximada</strong> de una cirugía en la que participaste.
+                  Para confirmar tu identidad, responde al desafío ingresando el <strong className="text-zinc-200">DNI de un paciente</strong> y la <strong className="text-zinc-200">fecha exacta</strong> de una cirugía en la que participaste.
                 </p>
               </div>
             </div>
