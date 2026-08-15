@@ -15,15 +15,13 @@ import {
   AlertCircle, 
   Loader2, 
   Search,
-  ShieldCheck,
-  Activity
+  ShieldCheck
 } from "lucide-react";
 import { 
   getUserProfileSelfAction, 
   getUbigeoSuggestionsAction, 
   updateUserProfileSelfAction 
 } from "@/app/actions/account-request";
-import { UserActivityDashboard } from "@/components/ui/user-activity-dashboard";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -33,7 +31,7 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: UserProfileModalProps) {
-  const [activeTab, setActiveTab] = useState<"activity" | "profile" | "password">("activity");
+  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
 
   // Form State
   const [loading, setLoading] = useState(true);
@@ -67,7 +65,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
   // Load Profile on Open
   useEffect(() => {
     if (isOpen && userId) {
-      setActiveTab("activity");
+      setActiveTab("profile");
       loadProfileData();
     } else {
       resetForm();
@@ -91,14 +89,12 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
       setTuitionCode(res.profile.tuitionCode || "");
       setUbigeoCode(res.profile.ubigeoCode || "");
       setUbigeoSearchText(res.profile.ubigeoLabel || "");
-    } else {
-      setErrorMessage(res.message || "No se pudo cargar la información del perfil.");
     }
     setLoading(false);
   };
 
   const resetForm = () => {
-    setActiveTab("activity");
+    setActiveTab("profile");
     setErrorMessage("");
     setSuccessMessage("");
     setCurrentPassword("");
@@ -149,35 +145,34 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
       return;
     }
 
-    if (newPassword || confirmPassword || currentPassword) {
+    if (activeTab === "password") {
       if (!currentPassword) {
-        setErrorMessage("Debes ingresar tu contraseña actual para establecer una nueva.");
+        setErrorMessage("Debes ingresar tu contraseña actual.");
+        return;
+      }
+      if (!newPassword || newPassword.length < 8) {
+        setErrorMessage("La nueva contraseña debe tener al menos 8 caracteres.");
         return;
       }
       if (newPassword !== confirmPassword) {
-        setErrorMessage("La nueva contraseña y su confirmación no coinciden.");
-        return;
-      }
-      if (newPassword.length < 6) {
-        setErrorMessage("La nueva contraseña debe tener al menos 6 caracteres.");
+        setErrorMessage("Las contraseñas no coinciden.");
         return;
       }
     }
 
     setSubmitting(true);
-
-    const result = await updateUserProfileSelfAction({
+    const res = await updateUserProfileSelfAction({
       userId,
       email,
       phone,
       tuitionCode,
       ubigeoCode,
-      currentPassword: currentPassword || undefined,
-      newPassword: newPassword || undefined,
+      currentPassword: activeTab === "password" ? currentPassword : undefined,
+      newPassword: activeTab === "password" ? newPassword : undefined,
     });
 
-    if (result.success) {
-      setSuccessMessage(result.message);
+    if (res.success) {
+      setSuccessMessage(res.message || "Perfil actualizado con éxito.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -187,10 +182,10 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
       }
 
       setTimeout(() => {
-        onClose();
-      }, 1800);
+        setSuccessMessage("");
+      }, 3000);
     } else {
-      setErrorMessage(result.message);
+      setErrorMessage(res.message || "Ocurrió un error al actualizar el perfil.");
     }
 
     setSubmitting(false);
@@ -206,7 +201,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className={`relative w-full ${activeTab === "activity" ? "max-w-5xl md:max-w-6xl" : "max-w-xl"} bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-4 max-h-[90vh] flex flex-col transition-all duration-300`}
+          className="relative w-full max-w-xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden my-4 max-h-[90vh] flex flex-col transition-all duration-300"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-zinc-50 dark:bg-zinc-850 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
@@ -216,10 +211,10 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
               </div>
               <div>
                 <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
-                  Mi Perfil y Producción Asistencial
+                  Mi Perfil
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Gestión de datos de contacto, estadísticas e historial quirúrgico
+                  Gestión de datos de contacto y seguridad del usuario
                 </p>
               </div>
             </div>
@@ -235,20 +230,8 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
           <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 pt-2 shrink-0 gap-1">
             <button
               type="button"
-              onClick={() => setActiveTab("activity")}
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === "activity"
-                  ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
-                  : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
-              }`}
-            >
-              <Activity size={15} /> Mi Actividad Quirúrgica
-            </button>
-
-            <button
-              type="button"
               onClick={() => setActiveTab("profile")}
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "profile"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -260,7 +243,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
             <button
               type="button"
               onClick={() => setActiveTab("password")}
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-bold border-b-2 transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-colors ${
                 activeTab === "password"
                   ? "border-[var(--color-hospital-blue)] text-[var(--color-hospital-blue)] dark:text-blue-400"
                   : "border-transparent text-zinc-500 hover:text-zinc-700 dark:text-zinc-400"
@@ -451,36 +434,29 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                   </div>
                 )}
 
-                {/* TAB 3: User Activity Dashboard */}
-                {activeTab === "activity" && (
-                  <UserActivityDashboard userId={userId} />
-                )}
-
                 {/* Footer Buttons */}
                 <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                   <button
                     type="button"
                     onClick={onClose}
                     disabled={submitting}
-                    className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+                    className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
                   >
-                    {activeTab === "activity" ? "Cerrar" : "Cancelar"}
+                    Cancelar
                   </button>
-                  {activeTab !== "activity" && (
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" /> Guardando...
-                        </>
-                      ) : (
-                        "Guardar Cambios"
-                      )}
-                    </button>
-                  )}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Guardando...
+                      </>
+                    ) : (
+                      "Guardar Cambios"
+                    )}
+                  </button>
                 </div>
               </>
             )}
