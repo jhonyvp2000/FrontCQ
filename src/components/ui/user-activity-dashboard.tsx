@@ -35,7 +35,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [roleFilter, setRoleFilter] = useState("ALL");
-  const [datePreset, setDatePreset] = useState("ALL");
+  const [datePreset, setDatePreset] = useState("TODAY");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
