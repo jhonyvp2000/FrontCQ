@@ -217,7 +217,7 @@ export default function HelpActivateAccountPage() {
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-emerald-400" /> Valida registro en plantilla asistencial
+              <ShieldCheck size={14} className="text-emerald-400 shrink-0" /> Valida que sean correctos y que estén registrados en la institución
             </div>
           </motion.div>
 
