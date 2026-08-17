@@ -273,7 +273,7 @@ export default function HelpActivateAccountPage() {
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <Phone size={14} className="text-blue-400" /> Verificación de número telefónico único
+              <Phone size={14} className="text-blue-400 shrink-0" /> Verificación de correo y número telefónico único, en dos pasos
             </div>
           </motion.div>
 
