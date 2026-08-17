@@ -396,7 +396,7 @@ export default function HelpActivateAccountPage() {
           <div className="text-left">
             <p className="text-xs font-bold text-white">Hospital II-2 Tarapoto</p>
             <p className="text-[11px] text-zinc-500">
-              Oficina de Estadística e Informática • OGESS Bajo Mayo <span className="ml-2 text-blue-400 font-mono text-[10px] bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800/60">v1.2 (Fecha Exacta)</span>
+              Oficina de Tecnología de Información y Comunicación • OGESS Especializada - Tarapoto <span className="ml-2 text-blue-400 font-mono text-[10px] bg-blue-950/60 px-2 py-0.5 rounded border border-blue-800/60">v1.2 (17/08/2026)</span>
             </p>
           </div>
 
