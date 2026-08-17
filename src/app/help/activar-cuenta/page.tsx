@@ -265,10 +265,10 @@ export default function HelpActivateAccountPage() {
               </div>
               <div>
                 <h4 className="text-sm font-bold text-white mb-1">
-                  Datos de Contacto y Ubigeo
+                  Datos de Contacto
                 </h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Registra tu <strong className="text-zinc-200">correo electrónico</strong>, un número de <strong className="text-zinc-200">celular único de 9 dígitos</strong> y tu distrito de residencia (Ubigeo).
+                  Registra tu <strong className="text-zinc-200">correo electrónico</strong> e ingresa tu número de <strong className="text-zinc-200">celular de 9 dígitos</strong>.
                 </p>
               </div>
             </div>
