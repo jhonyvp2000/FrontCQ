@@ -457,10 +457,10 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                             </p>
                           )}
 
-                          <form onSubmit={handleConfirmOtpCode} className="space-y-3 pt-1">
+                          <div className="space-y-3 pt-1">
                             <div>
                               <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
-                                Ingresa el código de 6 dígitos:
+                                Ingresa el código de 6 dígitos enviado:
                               </label>
                               <input
                                 type="text"
@@ -468,6 +468,15 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                                 autoFocus
                                 value={otpCode}
                                 onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (otpCode.length === 6 && !isConfirmingOtp) {
+                                      handleConfirmOtpCode(e);
+                                    }
+                                  }
+                                }}
                                 placeholder="123456"
                                 className="w-full px-3 py-2 text-center tracking-[0.5em] font-mono text-base font-extrabold rounded-xl border border-amber-500/60 bg-zinc-950 text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                               />
@@ -477,14 +486,15 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                               <button
                                 type="button"
                                 onClick={() => setOtpModalType(null)}
-                                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
+                                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white cursor-pointer"
                               >
                                 Cancelar
                               </button>
                               <button
-                                type="submit"
+                                type="button"
+                                onClick={(e) => handleConfirmOtpCode(e)}
                                 disabled={isConfirmingOtp || otpCode.length !== 6}
-                                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 text-zinc-950 transition-all flex items-center gap-1.5"
+                                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 text-zinc-950 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
                               >
                                 {isConfirmingOtp ? (
                                   <>
@@ -497,7 +507,7 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                                 )}
                               </button>
                             </div>
-                          </form>
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
