@@ -758,8 +758,18 @@ export async function sendContactVerificationOtpAction(userId: string, type: "em
 
     // Generate random 6-digit OTP code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const key = `${userId}:${type}`;
-    otpStore.set(key, { code, expiresAt: Date.now() + 10 * 60 * 1000 }); // 10 min
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    // Persist OTP directly in usersTable for multi-worker resilience
+    if (type === "email") {
+      await db.update(usersTable)
+        .set({ emailOtpCode: code, emailOtpExpiresAt: expiresAt })
+        .where(eq(usersTable.id, userId));
+    } else {
+      await db.update(usersTable)
+        .set({ phoneOtpCode: code, phoneOtpExpiresAt: expiresAt })
+        .where(eq(usersTable.id, userId));
+    }
 
     const doctorFullName = `${user.name} ${user.lastname}`.trim();
 
@@ -814,26 +824,44 @@ export async function confirmContactVerificationOtpAction(userId: string, type: 
       return { success: false, message: "El código debe tener exactamente 6 dígitos." };
     }
 
-    const key = `${userId}:${type}`;
-    const stored = otpStore.get(key);
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId)
+    });
 
-    if (!stored || stored.code !== cleanCode || stored.expiresAt < Date.now()) {
+    if (!user) {
+      return { success: false, message: "Usuario no encontrado." };
+    }
+
+    const expectedCode = type === "email" ? user.emailOtpCode : user.phoneOtpCode;
+    const expiresAt = type === "email" ? user.emailOtpExpiresAt : user.phoneOtpExpiresAt;
+
+    if (!expectedCode || expectedCode.trim() !== cleanCode || !expiresAt || new Date(expiresAt).getTime() < Date.now()) {
       return { success: false, message: "El código de verificación de 6 dígitos es incorrecto o ha expirado. Revisa tu mensaje y vuelve a intentarlo." };
     }
 
-    // Update database verification columns
+    // Update database verification columns and clear OTP
     const now = new Date();
     if (type === "email") {
       await db.update(usersTable)
-        .set({ isEmailVerified: true, emailVerifiedAt: now, updatedAt: now })
+        .set({ 
+          isEmailVerified: true, 
+          emailVerifiedAt: now, 
+          emailOtpCode: null, 
+          emailOtpExpiresAt: null, 
+          updatedAt: now 
+        })
         .where(eq(usersTable.id, userId));
     } else {
       await db.update(usersTable)
-        .set({ isPhoneVerified: true, phoneVerifiedAt: now, updatedAt: now })
+        .set({ 
+          isPhoneVerified: true, 
+          phoneVerifiedAt: now, 
+          phoneOtpCode: null, 
+          phoneOtpExpiresAt: null, 
+          updatedAt: now 
+        })
         .where(eq(usersTable.id, userId));
     }
-
-    otpStore.delete(key);
 
     return {
       success: true,

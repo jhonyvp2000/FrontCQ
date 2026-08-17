@@ -15,6 +15,10 @@ export const usersTable = pgTable("users", {
   isPhoneVerified: boolean("is_phone_verified").default(false).notNull(),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+  emailOtpCode: varchar("email_otp_code", { length: 10 }),
+  emailOtpExpiresAt: timestamp("email_otp_expires_at", { withTimezone: true }),
+  phoneOtpCode: varchar("phone_otp_code", { length: 10 }),
+  phoneOtpExpiresAt: timestamp("phone_otp_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
