@@ -324,13 +324,13 @@ export default function HelpActivateAccountPage() {
                   Aprobación y Primer Inicio de Sesión
                 </h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Una vez enviada la solicitud, el sistema otorgará la activación y asignación del rol asistencial. Podrás ingresar de inmediato desde la pantalla de inicio de sesión utilizando tu <strong className="text-zinc-200">DNI</strong> y tu <strong className="text-zinc-200">Contraseña</strong>.
+                  Una vez enviada y verificado sus respuestas, el sistema otorgará la activación y asignación del rol asistencial. Podrás ingresar de inmediato desde la pantalla de inicio de sesión utilizando tu <strong className="text-zinc-200">DNI</strong> y tu <strong className="text-zinc-200">Contraseña</strong>.
                 </p>
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-zinc-800 flex items-center justify-between text-[11px]">
               <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
-                <CheckCircle2 size={14} /> Acceso habilitado a la Pizarra Quirúrgica
+                <CheckCircle2 size={14} /> Acceso habilitado al Sistema
               </span>
               <span className="text-zinc-500">Sistema BackCQ / FrontCQ</span>
             </div>
