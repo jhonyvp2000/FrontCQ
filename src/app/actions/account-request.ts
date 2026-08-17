@@ -797,7 +797,8 @@ export async function sendContactVerificationOtpAction(userId: string, type: "em
       const smsResult = await sendContactOtpSms({
         phoneNumber: targetValue,
         doctorName: doctorFullName,
-        otpCode: code
+        otpCode: code,
+        userEmail: user.email || undefined
       });
 
       console.log(`[VERIFICACIÓN 2-STEP REAL] Mensaje SMS generado para ${targetValue} con código OTP: ${code}`);
