@@ -71,8 +71,8 @@ export default function HelpActivateAccountPage() {
       answer: "Es un mecanismo automático que comprueba que tú eres realmente el profesional médico. Te solicitará ingresar el DNI de un paciente y la fecha exacta de una cirugía en la que hayas participado previamente."
     },
     {
-      question: "¿Qué ocurre si me equivoco 3 veces en el Reto Quirúrgico?",
-      answer: "Para evitar intentos no autorizados, el sistema activará un bloqueo temporal de 15 minutos para tu DNI o número de teléfono. Transcurrido ese tiempo podrás intentarlo nuevamente."
+      question: "¿Qué ocurre si me equivoco en el Reto Quirúrgico?",
+      answer: "El sistema otorga máximo 3 intentos seguidos (Anti-suplantación), luego 2 intentos más y finalmente el bloqueo de equipo. Transcurrido el periodo de seguridad podrás intentarlo nuevamente."
     },
     {
       question: "¿Qué hago si el sistema me dice que mi DNI o Colegiatura no se encuentra registrado?",
@@ -245,7 +245,7 @@ export default function HelpActivateAccountPage() {
               </div>
             </div>
             <div className="mt-4 pt-3 border-t border-zinc-800 text-[11px] text-amber-400/90 flex items-center gap-1.5 font-medium">
-              <ShieldAlert size={14} className="shrink-0" /> Máximo 3 intentos (Anti-suplantación)
+              <ShieldAlert size={14} className="shrink-0" /> Máximo 3 intentos seguidos (Anti-suplantación), luego 2 intentos más y bloqueo de equipo
             </div>
           </motion.div>
 
