@@ -76,7 +76,7 @@ export default function HelpActivateAccountPage() {
     },
     {
       question: "¿Qué hago si el sistema me dice que mi DNI o Colegiatura no se encuentra registrado?",
-      answer: "Si eres personal asistencial recién ingresante y tu información aún no figura en la base de datos de cirugías, puedes comunicarte con la Oficina de Informática/Sistemas de la OGESS para el registro inicial."
+      answer: "Si eres personal asistencial recién ingresante o antiguo y tu información aún no figura en la Base de Datos del Hospital o cirugías realizadas, puedes comunicarte con la Oficina de Informática/Sistemas de la OGESS para el registro inicial."
     }
   ];
 
