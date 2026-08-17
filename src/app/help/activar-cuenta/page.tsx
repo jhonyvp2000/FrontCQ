@@ -60,7 +60,7 @@ export default function HelpActivateAccountPage() {
   const faqList = [
     {
       question: "¿Puedo leer esta guía desde mi celular o desde mi casa?",
-      answer: "¡Sí! Esta guía informativa es totalmente pública y accesible desde cualquier conexión a Internet (móvil, wifi de casa o extranet) las 24 horas del día."
+      answer: "¡Sí! Esta guía informativa es totalmente accesible desde cualquier conexión a Internet (móvil, wifi de casa o extranet) las 24 horas del día."
     },
     {
       question: "¿Por qué el formulario de solicitud debe llenarse desde la Red del Hospital?",
@@ -68,7 +68,7 @@ export default function HelpActivateAccountPage() {
     },
     {
       question: "¿Qué es el 'Reto Quirúrgico de Seguridad'?",
-      answer: "Es un mecanismo automático que comprueba que tú eres realmente el profesional médico. Te solicitará ingresar el DNI de un paciente y la fecha exacta de una cirugía en la que hayas participado previamente."
+      answer: "Es un mecanismo automático que comprueba que tú eres un profesional médico que participa en intervenciones quirúrgicas. Te solicitará ingresar el DNI de un paciente y la fecha exacta de una cirugía en la que hayas participado previamente."
     },
     {
       question: "¿Qué ocurre si me equivoco en el Reto Quirúrgico?",
