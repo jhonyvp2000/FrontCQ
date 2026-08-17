@@ -20,8 +20,8 @@ export default function LoginPage() {
         if (typeof window !== "undefined") {
             const params = new URLSearchParams(window.location.search);
             const errorParam = params.get("error");
-            if (errorParam === "SessionExpired" || errorParam === "forced_logout") {
-                setError("Tu sesión ha expirado o ha sido invalidada. Por favor, inicia sesión de nuevo.");
+            if (errorParam) {
+                setError("Tu sesión ha expirado o requiere iniciar sesión de nuevo.");
                 signOut({ redirect: false });
             }
             const messageParam = params.get("message");

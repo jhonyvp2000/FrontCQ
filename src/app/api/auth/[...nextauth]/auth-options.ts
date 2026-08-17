@@ -96,6 +96,13 @@ export const authOptions: AuthOptions = {
         },
         async session({ session, token }) {
             try {
+                if (!token || !token.id) {
+                    return {
+                        expires: session?.expires || new Date().toISOString(),
+                        error: "SessionExpired"
+                    } as any;
+                }
+
                 // 1. Verificar si el usuario sigue existiendo y está activo en la tabla global 'users'
                 const users = await db.select({ 
                     isActive: usersTable.isActive,
@@ -124,7 +131,10 @@ export const authOptions: AuthOptions = {
                 }
             } catch (error) {
                 console.error("Error validando sesión:", error);
-                return null as any; // Ante fallos de base de datos, por seguridad invalidamos la sesión
+                return {
+                    expires: session?.expires || new Date().toISOString(),
+                    error: "SessionExpired"
+                } as any;
             }
             return session;
         },
@@ -133,5 +143,5 @@ export const authOptions: AuthOptions = {
         signIn: '/login',
     },
     session: { strategy: "jwt" },
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || "V3l4p4r3d3s2026BackRRHH!@#",
 };
