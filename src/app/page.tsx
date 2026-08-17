@@ -11,7 +11,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
     const currentUser = session?.user ? {
         id: (session.user as any).id || (session.user as any).userId || "",
         name: session.user.name || "",
-        lastname: (session.user as any).lastname || ""
+        lastname: (session.user as any).lastname || "",
+        isEmailVerified: !!(session.user as any).isEmailVerified,
+        isPhoneVerified: !!(session.user as any).isPhoneVerified
     } : null;
     const sortParams = await searchParams;
     const currentSort = sortParams?.sort === 'asc' ? 'asc' : 'desc';

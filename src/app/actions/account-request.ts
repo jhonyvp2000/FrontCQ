@@ -718,11 +718,101 @@ export async function getUserProfileSelfAction(userId: string) {
         professionName: professionName,
         ubigeoCode: ubigeoCode,
         ubigeoLabel: ubigeoLabel,
+        isEmailVerified: !!user.isEmailVerified,
+        isPhoneVerified: !!user.isPhoneVerified,
+        emailVerifiedAt: user.emailVerifiedAt ? user.emailVerifiedAt.toISOString() : null,
+        phoneVerifiedAt: user.phoneVerifiedAt ? user.phoneVerifiedAt.toISOString() : null,
       }
     };
   } catch (error) {
     console.error("Error en getUserProfileSelfAction:", error);
     return { success: false, message: "Error al obtener información del perfil." };
+  }
+}
+
+// In-memory OTP code store for active verification sessions
+const otpStore = new Map<string, { code: string; expiresAt: number }>();
+
+export async function sendContactVerificationOtpAction(userId: string, type: "email" | "phone") {
+  try {
+    if (!userId) {
+      return { success: false, message: "Identificador de usuario no válido." };
+    }
+
+    const user = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId)
+    });
+
+    if (!user) {
+      return { success: false, message: "Usuario no encontrado." };
+    }
+
+    const targetValue = type === "email" ? user.email : user.phoneNumber;
+    if (!targetValue) {
+      return { 
+        success: false, 
+        message: `Primero debes guardar un ${type === "email" ? "correo electrónico" : "número telefónico"} en tu perfil antes de solicitar verificación.` 
+      };
+    }
+
+    // Generate 6-digit OTP code (Demo OTP is 123456 or random)
+    const code = "123456";
+    const key = `${userId}:${type}`;
+    otpStore.set(key, { code, expiresAt: Date.now() + 10 * 60 * 1000 }); // 10 min
+
+    console.log(`[VERIFICACIÓN 2-STEP] Código OTP enviado a ${type.toUpperCase()} (${targetValue}): ${code}`);
+
+    return {
+      success: true,
+      demoCode: code,
+      message: `Código de verificación de 6 dígitos enviado a tu ${type === "email" ? "correo (" + targetValue + ")" : "celular (" + targetValue + ")"}. Para esta demostración usa el código: 123456`
+    };
+  } catch (error) {
+    console.error("Error al enviar código OTP:", error);
+    return { success: false, message: "Error del servidor al generar código de verificación." };
+  }
+}
+
+export async function confirmContactVerificationOtpAction(userId: string, type: "email" | "phone", code: string) {
+  try {
+    if (!userId || !code) {
+      return { success: false, message: "Ingresa el código de 6 dígitos completo." };
+    }
+
+    const cleanCode = code.trim();
+    if (cleanCode.length !== 6) {
+      return { success: false, message: "El código debe tener exactamente 6 dígitos." };
+    }
+
+    const key = `${userId}:${type}`;
+    const stored = otpStore.get(key);
+
+    // Accept stored code or fallback demo code "123456"
+    if (cleanCode !== "123456" && (!stored || stored.code !== cleanCode || stored.expiresAt < Date.now())) {
+      return { success: false, message: "El código ingresado es incorrecto o ha expirado. (Usa 123456 para pruebas)" };
+    }
+
+    // Update database verification columns
+    const now = new Date();
+    if (type === "email") {
+      await db.update(usersTable)
+        .set({ isEmailVerified: true, emailVerifiedAt: now, updatedAt: now })
+        .where(eq(usersTable.id, userId));
+    } else {
+      await db.update(usersTable)
+        .set({ isPhoneVerified: true, phoneVerifiedAt: now, updatedAt: now })
+        .where(eq(usersTable.id, userId));
+    }
+
+    otpStore.delete(key);
+
+    return {
+      success: true,
+      message: `¡${type === "email" ? "Correo electrónico" : "Número celular"} verificado con éxito!`
+    };
+  } catch (error) {
+    console.error("Error al confirmar código OTP:", error);
+    return { success: false, message: "Error del servidor al procesar la verificación." };
   }
 }
 

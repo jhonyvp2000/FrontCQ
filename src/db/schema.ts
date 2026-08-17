@@ -11,6 +11,10 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   tokenVersion: integer("token_version").default(1).notNull(),
+  isEmailVerified: boolean("is_email_verified").default(false).notNull(),
+  isPhoneVerified: boolean("is_phone_verified").default(false).notNull(),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

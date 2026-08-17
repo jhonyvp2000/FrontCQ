@@ -154,7 +154,7 @@ export const formatDemographicsOnly = (patientPii: any, patient: any, bedNumber?
     return `(${sexStr} ${ageStr} HC: ${hcStr}${bloodGroupRh ? ` GFS: ${bloodGroupRh}` : ''})${bedNumber ? ` C: ${bedNumber}` : ''}`;
 };
 
-export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false, currentUser = null }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean, currentUser?: { id?: string; name: string; lastname: string } | null }) {
+export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false, currentUser = null }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean, currentUser?: { id?: string; name: string; lastname: string; isEmailVerified?: boolean; isPhoneVerified?: boolean } | null }) {
     const canEdit = permissions.includes('editar:programacion');
     const canCancel = permissions.includes('cancelar:programacion');
     const canAdvancePhase = permissions.includes('avanzar_fase:programacion');
@@ -721,28 +721,48 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     </span>
 
                     {currentUser && (
-                        <button
-                            onClick={() => setIsProfileModalOpen(true)}
-                            className="flex items-center gap-2 p-1.5 md:px-3 md:py-1.5 rounded-xl bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm shrink-0 select-none cursor-pointer transition-all group"
-                            title="Editar mi perfil y datos de contacto"
-                        >
-                            <div className="w-7 h-7 md:w-6 md:h-6 rounded-full bg-[var(--color-hospital-blue)] text-white text-xs md:text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform">
-                                {(() => {
-                                    const n = currentUser.name?.trim().charAt(0) || "";
-                                    const l = currentUser.lastname?.trim().charAt(0) || "";
-                                    return `${n}${l}`.toUpperCase();
-                                })()}
-                            </div>
-                            <div className="hidden md:flex flex-col text-left">
-                                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-250 leading-tight flex items-center gap-1">
-                                    {currentUser.name} {currentUser.lastname}
-                                    <User size={12} className="text-zinc-400 group-hover:text-blue-500 transition-colors" />
-                                </span>
-                                <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-500 leading-none mt-0.5">
-                                    Mi Perfil • Conectado
-                                </span>
-                            </div>
-                        </button>
+                        (() => {
+                            const isFullyVerified = currentUser.isEmailVerified && currentUser.isPhoneVerified;
+                            return (
+                                <button
+                                    onClick={() => setIsProfileModalOpen(true)}
+                                    className={`flex items-center gap-2 p-1.5 md:px-3 md:py-1.5 rounded-xl border shadow-sm shrink-0 select-none cursor-pointer transition-all group relative ${
+                                        isFullyVerified 
+                                            ? "bg-zinc-100 hover:bg-zinc-200/80 dark:bg-zinc-800/40 dark:hover:bg-zinc-800 border-zinc-200/50 dark:border-zinc-700/50"
+                                            : "bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.25)] animate-pulse"
+                                    }`}
+                                    title={isFullyVerified ? "Perfil Verificado y Conectado" : "Atención: Tienes datos de contacto pendientes de verificar en 2 Pasos (Correo / Celular)"}
+                                >
+                                    <div className="relative">
+                                        <div className={`w-7 h-7 md:w-6 md:h-6 rounded-full font-bold flex items-center justify-center shadow-sm shrink-0 group-hover:scale-105 transition-transform text-white text-xs md:text-[10px] ${
+                                            isFullyVerified ? "bg-[var(--color-hospital-blue)]" : "bg-amber-600 ring-2 ring-amber-400"
+                                        }`}>
+                                            {(() => {
+                                                const n = currentUser.name?.trim().charAt(0) || "";
+                                                const l = currentUser.lastname?.trim().charAt(0) || "";
+                                                return `${n}${l}`.toUpperCase();
+                                            })()}
+                                        </div>
+                                        {!isFullyVerified && (
+                                            <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 border-2 border-zinc-900 rounded-full flex items-center justify-center">
+                                                <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="hidden md:flex flex-col text-left">
+                                        <span className="text-xs font-bold text-zinc-800 dark:text-zinc-250 leading-tight flex items-center gap-1">
+                                            {currentUser.name} {currentUser.lastname}
+                                            <User size={12} className={isFullyVerified ? "text-zinc-400 group-hover:text-blue-500" : "text-amber-400"} />
+                                        </span>
+                                        <span className={`text-[9px] font-semibold leading-none mt-0.5 ${
+                                            isFullyVerified ? "text-emerald-600 dark:text-emerald-400" : "text-amber-400 font-bold"
+                                        }`}>
+                                            {isFullyVerified ? "Mi Perfil • 🛡️ Verificado" : "Mi Perfil • ⚠️ 2-Step Pendiente"}
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        })()
                     )}
 
                     <button

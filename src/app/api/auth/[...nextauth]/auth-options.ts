@@ -106,7 +106,9 @@ export const authOptions: AuthOptions = {
                 // 1. Verificar si el usuario sigue existiendo y está activo en la tabla global 'users'
                 const users = await db.select({ 
                     isActive: usersTable.isActive,
-                    tokenVersion: usersTable.tokenVersion 
+                    tokenVersion: usersTable.tokenVersion,
+                    isEmailVerified: usersTable.isEmailVerified,
+                    isPhoneVerified: usersTable.isPhoneVerified
                 })
                 .from(usersTable)
                 .where(eq(usersTable.id, token.id as string));
@@ -128,6 +130,8 @@ export const authOptions: AuthOptions = {
                     (session.user as any).lastname = token.lastname;
                     (session.user as any).permissions = token.permissions || [];
                     (session.user as any).mustChangePassword = !!token.mustChangePassword;
+                    (session.user as any).isEmailVerified = !!user.isEmailVerified;
+                    (session.user as any).isPhoneVerified = !!user.isPhoneVerified;
                 }
             } catch (error) {
                 console.error("Error validando sesión:", error);

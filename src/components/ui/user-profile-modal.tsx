@@ -20,7 +20,9 @@ import {
 import { 
   getUserProfileSelfAction, 
   getUbigeoSuggestionsAction, 
-  updateUserProfileSelfAction 
+  updateUserProfileSelfAction,
+  sendContactVerificationOtpAction,
+  confirmContactVerificationOtpAction
 } from "@/app/actions/account-request";
 
 interface UserProfileModalProps {
@@ -62,6 +64,20 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Verification states
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false);
+  const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
+  const [phoneVerifiedAt, setPhoneVerifiedAt] = useState<string | null>(null);
+
+  // OTP Verification Modal State
+  const [otpModalType, setOtpModalType] = useState<"email" | "phone" | null>(null);
+  const [otpCode, setOtpCode] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isConfirmingOtp, setIsConfirmingOtp] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [otpMessage, setOtpMessage] = useState("");
+
   // Load Profile on Open
   useEffect(() => {
     if (isOpen && userId) {
@@ -89,6 +105,11 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
       setTuitionCode(res.profile.tuitionCode || "");
       setUbigeoCode(res.profile.ubigeoCode || "");
       setUbigeoSearchText(res.profile.ubigeoLabel || "");
+
+      setIsEmailVerified(!!res.profile.isEmailVerified);
+      setIsPhoneVerified(!!res.profile.isPhoneVerified);
+      setEmailVerifiedAt(res.profile.emailVerifiedAt || null);
+      setPhoneVerifiedAt(res.profile.phoneVerifiedAt || null);
     }
     setLoading(false);
   };
@@ -102,6 +123,51 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
     setConfirmPassword("");
     setUbigeoSuggestions([]);
     setShowUbigeoDropdown(false);
+    setOtpModalType(null);
+    setOtpCode("");
+    setOtpError("");
+    setOtpMessage("");
+  };
+
+  // Handle OTP Verification Trigger
+  const handleStartOtpVerification = async (type: "email" | "phone") => {
+    setOtpModalType(type);
+    setOtpCode("");
+    setOtpError("");
+    setOtpMessage("");
+    setIsSendingOtp(true);
+
+    const res = await sendContactVerificationOtpAction(userId, type);
+    setIsSendingOtp(false);
+
+    if (res.success) {
+      setOtpMessage(res.message);
+    } else {
+      setOtpError(res.message);
+    }
+  };
+
+  const handleConfirmOtpCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpModalType) return;
+    setOtpError("");
+    setIsConfirmingOtp(true);
+
+    const res = await confirmContactVerificationOtpAction(userId, otpModalType, otpCode);
+    setIsConfirmingOtp(false);
+
+    if (res.success) {
+      setSuccessMessage(res.message);
+      if (otpModalType === "email") {
+        setIsEmailVerified(true);
+      } else {
+        setIsPhoneVerified(true);
+      }
+      setOtpModalType(null);
+      if (onProfileUpdated) onProfileUpdated();
+    } else {
+      setOtpError(res.message);
+    }
   };
 
   // Handle Ubigeo Search
@@ -296,11 +362,26 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                       <ShieldCheck size={28} className="text-emerald-500/80" />
                     </div>
 
-                    {/* Email Input */}
+                    {/* Email Input & Verification Status */}
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-                        <Mail size={14} className="text-zinc-400" /> Correo Electrónico
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Mail size={14} className="text-zinc-400" /> Correo Electrónico
+                        </label>
+                        {isEmailVerified ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                            <CheckCircle2 size={11} /> Verificado ✓
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartOtpVerification("email")}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-105"
+                          >
+                            <AlertCircle size={11} /> ⚠️ Sin Verificar • Validar ahora
+                          </button>
+                        )}
+                      </div>
                       <input
                         type="email"
                         required
@@ -311,11 +392,26 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                       />
                     </div>
 
-                    {/* Phone Input */}
+                    {/* Phone Input & Verification Status */}
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-                        <Phone size={14} className="text-zinc-400" /> Teléfono / Celular (9 dígitos)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Phone size={14} className="text-zinc-400" /> Teléfono / Celular (9 dígitos)
+                        </label>
+                        {isPhoneVerified ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                            <CheckCircle2 size={11} /> Verificado ✓
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartOtpVerification("phone")}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-105"
+                          >
+                            <AlertCircle size={11} /> ⚠️ Sin Verificar • Validar ahora
+                          </button>
+                        )}
+                      </div>
                       <input
                         type="text"
                         maxLength={9}
@@ -325,6 +421,86 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                         className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all font-mono"
                       />
                     </div>
+
+                    {/* OTP Modal Overlay Card */}
+                    <AnimatePresence>
+                      {otpModalType && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="p-4 rounded-2xl bg-zinc-900 border border-amber-500/40 shadow-xl space-y-3 overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                              <Key size={16} />
+                              <span>Verificación de 2 Pasos ({otpModalType === "email" ? "Correo" : "Celular"})</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setOtpModalType(null)}
+                              className="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          {otpMessage && (
+                            <p className="text-[11px] text-zinc-300 leading-relaxed bg-zinc-800/80 p-2.5 rounded-xl border border-zinc-750 font-mono">
+                              {otpMessage}
+                            </p>
+                          )}
+
+                          {otpError && (
+                            <p className="text-[11px] text-rose-400 font-semibold bg-rose-950/60 p-2 rounded-lg border border-rose-800">
+                              {otpError}
+                            </p>
+                          )}
+
+                          <form onSubmit={handleConfirmOtpCode} className="space-y-3 pt-1">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-zinc-400 mb-1">
+                                Ingresa el código de 6 dígitos:
+                              </label>
+                              <input
+                                type="text"
+                                maxLength={6}
+                                autoFocus
+                                value={otpCode}
+                                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                placeholder="123456"
+                                className="w-full px-3 py-2 text-center tracking-[0.5em] font-mono text-base font-extrabold rounded-xl border border-amber-500/60 bg-zinc-950 text-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                              />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setOtpModalType(null)}
+                                className="px-3 py-1.5 text-xs text-zinc-400 hover:text-white"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={isConfirmingOtp || otpCode.length !== 6}
+                                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 disabled:bg-zinc-800 text-zinc-950 transition-all flex items-center gap-1.5"
+                              >
+                                {isConfirmingOtp ? (
+                                  <>
+                                    <Loader2 size={13} className="animate-spin" /> Verificando...
+                                  </>
+                                ) : (
+                                  <>
+                                    Confirmar Código <CheckCircle2 size={13} />
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </form>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Tuition Code Input */}
                     <div>
