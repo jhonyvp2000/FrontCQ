@@ -240,7 +240,7 @@ export default function HelpActivateAccountPage() {
                   Reto Quirúrgico de Seguridad
                 </h4>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Para confirmar tu identidad, responde al desafío ingresando el <strong className="text-zinc-200">DNI de un paciente</strong> y la <strong className="text-zinc-200">fecha exacta</strong> de una cirugía en la que participaste.
+                  Para confirmar tu rol en la institución, responde al desafío ingresando el <strong className="text-zinc-200">DNI de un paciente</strong> y la <strong className="text-zinc-200">fecha exacta</strong> de una cirugía en la que participaste.
                 </p>
               </div>
             </div>
