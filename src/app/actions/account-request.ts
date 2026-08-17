@@ -17,7 +17,8 @@ import {
 import { eq, and, sql, gt, or, ilike, ne } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
-import { sendAccountRequestApprovalEmail } from "@/lib/email-service";
+import { sendAccountRequestApprovalEmail, sendVerificationOtpEmail } from "@/lib/email-service";
+import { sendContactOtpSms } from "@/lib/sms-service";
 import { getClientIpFromHeaders, isInternalHospitalIp } from "@/lib/ip-utils";
 
 export async function checkIsInternalNetworkAction() {
@@ -748,28 +749,57 @@ export async function sendContactVerificationOtpAction(userId: string, type: "em
     }
 
     const targetValue = type === "email" ? user.email : user.phoneNumber;
-    if (!targetValue) {
+    if (!targetValue || !targetValue.trim()) {
       return { 
         success: false, 
-        message: `Primero debes guardar un ${type === "email" ? "correo electrónico" : "número telefónico"} en tu perfil antes de solicitar verificación.` 
+        message: `Primero debes registrar tu ${type === "email" ? "correo electrónico" : "número telefónico"} en tu perfil antes de solicitar verificación.` 
       };
     }
 
-    // Generate 6-digit OTP code (Demo OTP is 123456 or random)
-    const code = "123456";
+    // Generate random 6-digit OTP code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
     const key = `${userId}:${type}`;
     otpStore.set(key, { code, expiresAt: Date.now() + 10 * 60 * 1000 }); // 10 min
 
-    console.log(`[VERIFICACIÓN 2-STEP] Código OTP enviado a ${type.toUpperCase()} (${targetValue}): ${code}`);
+    const doctorFullName = `${user.name} ${user.lastname}`.trim();
 
-    return {
-      success: true,
-      demoCode: code,
-      message: `Código de verificación de 6 dígitos enviado a tu ${type === "email" ? "correo (" + targetValue + ")" : "celular (" + targetValue + ")"}. Para esta demostración usa el código: 123456`
-    };
+    if (type === "email") {
+      const emailResult = await sendVerificationOtpEmail({
+        toEmail: targetValue,
+        doctorName: doctorFullName,
+        otpCode: code
+      });
+
+      if (!emailResult.success) {
+        return {
+          success: false,
+          message: `Error al enviar correo electrónico de verificación: ${emailResult.error || "Fallo en servicio SMTP"}`
+        };
+      }
+
+      console.log(`[VERIFICACIÓN 2-STEP REAL] Correo enviado exitosamente a ${targetValue} con código OTP: ${code}`);
+
+      return {
+        success: true,
+        message: `Código de verificación de 6 dígitos enviado exitosamente a tu correo electrónico (${targetValue}). Revisa tu bandeja de entrada.`
+      };
+    } else {
+      const smsResult = await sendContactOtpSms({
+        phoneNumber: targetValue,
+        doctorName: doctorFullName,
+        otpCode: code
+      });
+
+      console.log(`[VERIFICACIÓN 2-STEP REAL] Mensaje SMS generado para ${targetValue} con código OTP: ${code}`);
+
+      return {
+        success: true,
+        message: `Código de verificación de 6 dígitos enviado exitosamente a tu número celular (${targetValue}).`
+      };
+    }
   } catch (error) {
     console.error("Error al enviar código OTP:", error);
-    return { success: false, message: "Error del servidor al generar código de verificación." };
+    return { success: false, message: "Error del servidor al procesar el envío del código." };
   }
 }
 
@@ -787,9 +817,8 @@ export async function confirmContactVerificationOtpAction(userId: string, type: 
     const key = `${userId}:${type}`;
     const stored = otpStore.get(key);
 
-    // Accept stored code or fallback demo code "123456"
-    if (cleanCode !== "123456" && (!stored || stored.code !== cleanCode || stored.expiresAt < Date.now())) {
-      return { success: false, message: "El código ingresado es incorrecto o ha expirado. (Usa 123456 para pruebas)" };
+    if (!stored || stored.code !== cleanCode || stored.expiresAt < Date.now()) {
+      return { success: false, message: "El código de verificación de 6 dígitos es incorrecto o ha expirado. Revisa tu mensaje y vuelve a intentarlo." };
     }
 
     // Update database verification columns

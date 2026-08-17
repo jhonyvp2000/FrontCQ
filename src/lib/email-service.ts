@@ -142,3 +142,75 @@ export async function sendAccountRequestApprovalEmail(params: SendAccountRequest
     return { success: false, error: String(error) };
   }
 }
+
+export interface SendVerificationOtpEmailParams {
+  toEmail: string;
+  doctorName: string;
+  otpCode: string;
+}
+
+export async function sendVerificationOtpEmail(params: SendVerificationOtpEmailParams) {
+  const { toEmail, doctorName, otpCode } = params;
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+        .card { max-width: 550px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; padding: 28px; text-align: center; }
+        .header h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+        .header p { margin: 6px 0 0 0; opacity: 0.85; font-size: 13px; color: #94a3b8; }
+        .content { padding: 28px; text-align: center; }
+        .otp-box { background: #f1f5f9; border: 2px dashed #0284c7; border-radius: 12px; padding: 20px; margin: 24px 0; display: inline-block; width: 80%; }
+        .otp-code { font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #0284c7; margin: 0; }
+        .badge-timer { background: #fef3c7; color: #b45309; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; margin-top: 10px; }
+        .footer { background: #f8fafc; padding: 18px; text-align: center; font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="header">
+          <h2>🏥 HOSPITAL II-2 TARAPOTO</h2>
+          <p>Verificación de Seguridad en 2 Pasos (FrontCQ)</p>
+        </div>
+        <div class="content">
+          <p style="font-size: 15px; font-weight: 600; color: #334155; margin-bottom: 8px;">Estimado(a) ${doctorName},</p>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">
+            Has solicitado validar tu correo electrónico para la confirmación de tu perfil asistencial en el sistema del Bloque Quirúrgico.
+          </p>
+
+          <div class="otp-box">
+            <p style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin: 0 0 8px 0; letter-spacing: 1px;">Tu Código de Verificación OTP</p>
+            <h1 class="otp-code">${otpCode}</h1>
+            <div class="badge-timer">⏱️ Válido por 10 minutos</div>
+          </div>
+
+          <p style="font-size: 12px; color: #94a3b8; margin-top: 16px;">
+            Si tú no realizaste esta solicitud, por favor ignora este mensaje. Ningún personal de la institución te pedirá este código.
+          </p>
+        </div>
+        <div class="footer">
+          Oficina de Tecnología de Información y Comunicación • OGESS Especializada - Tarapoto
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const fromAddress = process.env.SMTP_FROM || 'hospitaltarapotocoordinacion@gmail.com';
+    await transporter.sendMail({
+      from: `"FrontCQ - Sistema Quirúrgico" <${fromAddress}>`,
+      to: toEmail,
+      subject: `🔑 [Código OTP ${otpCode}] Verificación de Correo - Hospital II-2 Tarapoto`,
+      html,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error enviando correo OTP de verificación:", error);
+    return { success: false, error: String(error) };
+  }
+}
