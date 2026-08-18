@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format, parseISO, addDays, startOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar as CalendarIcon, Clock, User, ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
@@ -110,31 +110,70 @@ export function SurgeryTimeline({ surgeriesData, salas, displayDate, setDisplayD
     const timeSlots = Array.from({ length: 14 }).map((_, i) => i + 7);
     const isWeekView = salas.length === 1;
 
-    // Configuración dinámica del Eje X
-    const columnsConfig = isWeekView
-        ? Array.from({ length: 7 }).map((_, i) => {
-            const day = addDays(startOfWeek(parsedDate, { weekStartsOn: 1 }), i);
-            return {
-                id: format(day, "yyyy-MM-dd"),
-                name: format(day, "EEEE dd", { locale: es }),
-                date: day,
-                salaId: salas[0].id
-            };
-        })
-        : [
-            ...salas.map(sala => ({
-                id: sala.id,
-                name: sala.name,
-                date: parsedDate,
-                salaId: sala.id
-            })),
-            {
+    // Configuración dinámica del Eje X (Solo mostrar salas que tengan cirugías programadas asociadas)
+    const columnsConfig = useMemo(() => {
+        if (isWeekView) {
+            return Array.from({ length: 7 }).map((_, i) => {
+                const day = addDays(startOfWeek(parsedDate, { weekStartsOn: 1 }), i);
+                return {
+                    id: format(day, "yyyy-MM-dd"),
+                    name: format(day, "EEEE dd", { locale: es }),
+                    date: day,
+                    salaId: salas[0].id
+                };
+            });
+        }
+
+        // Filtrar salas que tengan al menos 1 cirugía asignada en la fecha seleccionada
+        const activeSalas = salas.filter(sala => {
+            return surgeriesData.some(s => 
+                (s.operatingRoom?.id === sala.id || s.surgery?.operatingRoomId === sala.id) &&
+                isSameDayStr(s.surgery.scheduledDate, parsedDate)
+            );
+        });
+
+        const hasUnassigned = surgeriesData.some(s => 
+            !s.operatingRoom?.id &&
+            !s.surgery?.operatingRoomId &&
+            isSameDayStr(s.surgery.scheduledDate, parsedDate)
+        );
+
+        const cols = activeSalas.map(sala => ({
+            id: sala.id,
+            name: sala.name,
+            date: parsedDate,
+            salaId: sala.id
+        }));
+
+        if (hasUnassigned) {
+            cols.push({
                 id: "unassigned",
                 name: "Por Asignar",
                 date: parsedDate,
-                salaId: null // special identifier for unassigned
-            }
-        ];
+                salaId: null
+            });
+        }
+
+        // Fallback: Si no hay ninguna cirugía en la fecha seleccionada, mostrar todas las salas disponibles
+        if (cols.length === 0) {
+            return [
+                ...salas.map(sala => ({
+                    id: sala.id,
+                    name: sala.name,
+                    date: parsedDate,
+                    salaId: sala.id
+                })),
+                {
+                    id: "unassigned",
+                    name: "Por Asignar",
+                    date: parsedDate,
+                    salaId: null
+                }
+            ];
+        }
+
+        return cols;
+    }, [isWeekView, salas, surgeriesData, parsedDate]);
 
     // Helper functions para el canvas
     const getSurgeryPosition = (dateStr: Date | string, durationStr: string) => {
