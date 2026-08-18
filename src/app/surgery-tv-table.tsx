@@ -661,7 +661,11 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
     };
 
     const sortedSurgeries = [...filteredSurgeries].sort((a, b) => {
-        if (!sortConfig || sortConfig.length === 0) return 0;
+        if (!sortConfig || sortConfig.length === 0) {
+            const timeA = a.surgery.scheduledDate ? new Date(a.surgery.scheduledDate).getTime() : 0;
+            const timeB = b.surgery.scheduledDate ? new Date(b.surgery.scheduledDate).getTime() : 0;
+            return timeA - timeB;
+        }
         
         for (const config of sortConfig) {
             const multiplier = config.direction === 'asc' ? 1 : -1;

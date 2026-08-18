@@ -148,6 +148,13 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
       }
     }
 
+    // Ordenar cronológicamente de menor a mayor hora (8am antes de 10am, 10am antes de 2pm)
+    result.sort((a, b) => {
+      const timeA = a.surgeryDate ? new Date(a.surgeryDate).getTime() : 0;
+      const timeB = b.surgeryDate ? new Date(b.surgeryDate).getTime() : 0;
+      return timeA - timeB;
+    });
+
     return result;
   }, [history, searchTerm, roleFilter, datePreset, startDate, endDate]);
 
@@ -357,6 +364,71 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
       </html>
     `);
     printWindow.document.close();
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return (
+          <span className="bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div> Programada
+          </span>
+        );
+      case 'in_progress':
+        return (
+          <span className="bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div> En Quirófano
+          </span>
+        );
+      case 'anesthesia_start':
+        return (
+          <span className="bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-purple-200 dark:border-purple-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div> Anestesia Inducida
+          </span>
+        );
+      case 'pre_incision':
+        return (
+          <span className="bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-950/40 dark:text-fuchsia-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-fuchsia-200 dark:border-fuchsia-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-fuchsia-500 animate-pulse"></div> Antes de Incisión
+          </span>
+        );
+      case 'surgery_end':
+        return (
+          <span className="bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-cyan-200 dark:border-cyan-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></div> Término de Cirugía
+          </span>
+        );
+      case 'patient_exit':
+        return (
+          <span className="bg-orange-50 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-orange-200 dark:border-orange-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div> Salida Paciente
+          </span>
+        );
+      case 'urpa_exit':
+        return (
+          <span className="bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-indigo-200 dark:border-indigo-800 inline-flex items-center gap-1.5 shadow-sm">
+            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div> Salida URPA
+          </span>
+        );
+      case 'completed':
+        return (
+          <span className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1 shadow-sm">
+            <CheckCircle2 size={12} className="text-emerald-500" /> Finalizada
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800 inline-flex items-center gap-1 shadow-sm">
+            <XCircle size={12} /> Suspendida
+          </span>
+        );
+      default:
+        return (
+          <span className="bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 px-2.5 py-1 rounded-full text-[10px] font-bold border border-zinc-200 dark:border-zinc-700 inline-flex items-center gap-1 shadow-sm">
+            <AlertCircle size={12} /> Desconocido
+          </span>
+        );
+    }
   };
 
   const uniqueRoles = Array.from(new Set(history.map(h => h.roleInSurgery)));
@@ -670,16 +742,26 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
                 </tr>
               ) : (
                 paginatedHistory.map((item) => {
-                  const dateStr = item.surgeryDate 
-                    ? new Date(item.surgeryDate).toLocaleDateString('es-PE', { day: '2-digit', month: 'short', year: 'numeric' })
+                  const d = item.surgeryDate ? new Date(item.surgeryDate) : null;
+                  const dateStr = d 
+                    ? d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' })
                     : "Fecha n/a";
+                  const timeStr = d
+                    ? d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: true })
+                    : "";
 
                   return (
                     <tr key={item.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
                       {/* Date & Room */}
                       <td className="px-4 py-3">
-                        <p className="font-bold text-zinc-900 dark:text-white flex items-center gap-1">
-                          <Calendar size={13} className="text-zinc-400" /> {dateStr}
+                        <p className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5 whitespace-nowrap">
+                          <Calendar size={13} className="text-zinc-400 shrink-0" /> 
+                          <span>{dateStr}</span>
+                          {timeStr && (
+                            <span className="text-[10px] font-mono font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200/60 dark:border-blue-800/60 ml-1">
+                              🕒 {timeStr}
+                            </span>
+                          )}
                         </p>
                         <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-semibold mt-0.5">
                           {item.roomName}
@@ -751,21 +833,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
 
                       {/* Status */}
                       <td className="px-4 py-3 text-right">
-                        {item.status === 'completed' && (
-                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold inline-flex items-center gap-1">
-                            <CheckCircle2 size={12} /> Realizada
-                          </span>
-                        )}
-                        {item.status === 'cancelled' && (
-                          <span className="px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold inline-flex items-center gap-1">
-                            <XCircle size={12} /> Suspendida
-                          </span>
-                        )}
-                        {item.status !== 'completed' && item.status !== 'cancelled' && (
-                          <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold inline-flex items-center gap-1">
-                            <Clock size={12} /> Programada
-                          </span>
-                        )}
+                        {getStatusBadge(item.status)}
                       </td>
                     </tr>
                   );
