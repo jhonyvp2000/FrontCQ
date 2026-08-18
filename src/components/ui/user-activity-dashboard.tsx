@@ -431,6 +431,31 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
     }
   };
 
+  const getRowBgClass = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return 'bg-blue-50/30 dark:bg-blue-950/20 hover:bg-blue-50/60 dark:hover:bg-blue-950/40 border-l-4 border-l-blue-500';
+      case 'in_progress':
+        return 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-50/70 dark:hover:bg-amber-950/40 border-l-4 border-l-amber-500';
+      case 'anesthesia_start':
+        return 'bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50/70 dark:hover:bg-purple-950/40 border-l-4 border-l-purple-500';
+      case 'pre_incision':
+        return 'bg-fuchsia-50/40 dark:bg-fuchsia-950/20 hover:bg-fuchsia-50/70 dark:hover:bg-fuchsia-950/40 border-l-4 border-l-fuchsia-500';
+      case 'surgery_end':
+        return 'bg-cyan-50/40 dark:bg-cyan-950/20 hover:bg-cyan-50/70 dark:hover:bg-cyan-950/40 border-l-4 border-l-cyan-500';
+      case 'patient_exit':
+        return 'bg-orange-50/40 dark:bg-orange-950/20 hover:bg-orange-50/70 dark:hover:bg-orange-950/40 border-l-4 border-l-orange-500';
+      case 'urpa_exit':
+        return 'bg-indigo-50/40 dark:bg-indigo-950/20 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border-l-4 border-l-indigo-500';
+      case 'completed':
+        return 'bg-emerald-50/30 dark:bg-emerald-950/20 hover:bg-emerald-50/60 dark:hover:bg-emerald-950/40 border-l-4 border-l-emerald-500';
+      case 'cancelled':
+        return 'bg-red-50/40 dark:bg-red-950/20 hover:bg-red-50/70 dark:hover:bg-red-950/40 border-l-4 border-l-red-500';
+      default:
+        return 'hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30';
+    }
+  };
+
   const uniqueRoles = Array.from(new Set(history.map(h => h.roleInSurgery)));
 
   return (
@@ -751,7 +776,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
                     : "";
 
                   return (
-                    <tr key={item.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors">
+                    <tr key={item.id} className={`${getRowBgClass(item.status)} transition-colors`}>
                       {/* Date & Room */}
                       <td className="px-4 py-3">
                         <p className="font-bold text-zinc-900 dark:text-white flex items-center gap-1.5 whitespace-nowrap">
