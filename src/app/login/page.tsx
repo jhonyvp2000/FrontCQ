@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, WifiOff, BookOpen } from "lucide-react";
+import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, WifiOff, BookOpen, KeyRound, X, Mail, ShieldAlert } from "lucide-react";
 import { checkIsInternalNetworkAction } from "@/app/actions/account-request";
+import { requestPasswordResetOtpAction, confirmPasswordResetOtpAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -15,6 +16,18 @@ export default function LoginPage() {
     const [successMsg, setSuccessMsg] = useState("");
     const [loading, setLoading] = useState(false);
     const [isInternalNetwork, setIsInternalNetwork] = useState<boolean | null>(null);
+
+    // Estados para el Modal de "¿Olvidó su clave?"
+    const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+    const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+    const [forgotIdentifier, setForgotIdentifier] = useState("");
+    const [forgotOtpCode, setForgotOtpCode] = useState("");
+    const [forgotNewPassword, setForgotNewPassword] = useState("");
+    const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+    const [forgotLoading, setForgotLoading] = useState(false);
+    const [forgotError, setForgotError] = useState("");
+    const [forgotSuccessMsg, setForgotSuccessMsg] = useState("");
+    const [maskedEmail, setMaskedEmail] = useState("");
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -63,6 +76,62 @@ export default function LoginPage() {
             setError("Error de red. Inténtalo de nuevo.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleOpenForgotModal = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setForgotStep(1);
+        setForgotIdentifier(dni.trim());
+        setForgotOtpCode("");
+        setForgotNewPassword("");
+        setForgotConfirmPassword("");
+        setForgotError("");
+        setForgotSuccessMsg("");
+        setMaskedEmail("");
+        setIsForgotModalOpen(true);
+    };
+
+    const handleRequestOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setForgotError("");
+        setForgotSuccessMsg("");
+        setForgotLoading(true);
+
+        const res = await requestPasswordResetOtpAction(forgotIdentifier);
+        setForgotLoading(false);
+
+        if (!res.success) {
+            setForgotError(res.message);
+        } else {
+            setMaskedEmail(res.maskedEmail || "");
+            setForgotSuccessMsg(res.message);
+            setForgotStep(2);
+        }
+    };
+
+    const handleConfirmReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setForgotError("");
+        setForgotSuccessMsg("");
+        setForgotLoading(true);
+
+        const res = await confirmPasswordResetOtpAction(
+            forgotIdentifier,
+            forgotOtpCode,
+            forgotNewPassword,
+            forgotConfirmPassword
+        );
+        setForgotLoading(false);
+
+        if (!res.success) {
+            setForgotError(res.message);
+        } else {
+            if (res.dni) {
+                setDni(res.dni);
+            }
+            setIsForgotModalOpen(false);
+            setSuccessMsg("¡Contraseña restablecida con éxito! Ya puedes iniciar sesión con tu nueva clave.");
         }
     };
 
@@ -163,9 +232,13 @@ export default function LoginPage() {
                                     <input type="checkbox" className="rounded border-zinc-300 text-[var(--color-hospital-blue)] focus:ring-[var(--color-hospital-blue)] h-4 w-4" />
                                     <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Recordarme</span>
                                 </label>
-                                <a href="#" className="text-xs font-semibold text-[var(--color-hospital-blue)] hover:underline dark:text-blue-400">
+                                <button
+                                    type="button"
+                                    onClick={handleOpenForgotModal}
+                                    className="text-xs font-semibold text-[var(--color-hospital-blue)] hover:underline dark:text-blue-400"
+                                >
                                     ¿Olvidó su clave?
-                                </a>
+                                </button>
                             </div>
 
                             <button
@@ -230,6 +303,200 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Recuperación de Contraseña */}
+            {isForgotModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-zinc-200 dark:border-zinc-800 relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsForgotModalOpen(false)}
+                            className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-lg"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-[var(--color-hospital-blue)] border border-blue-100 dark:border-blue-900/50">
+                                <KeyRound size={22} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                                    Restablecer Contraseña
+                                </h3>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {forgotStep === 1 
+                                        ? "Paso 1: Solicitud de código de verificación OTP" 
+                                        : "Paso 2: Ingreso de código OTP y nueva clave"}
+                                </p>
+                            </div>
+                        </div>
+
+                        {forgotError && (
+                            <div className="mb-4 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-start gap-2.5">
+                                <ShieldAlert size={18} className="shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+                                <div className="leading-relaxed">
+                                    <p className="font-bold mb-0.5">Atención:</p>
+                                    <p>{forgotError}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {forgotSuccessMsg && (
+                            <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                <CheckCircle2 size={16} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                <span>{forgotSuccessMsg}</span>
+                            </div>
+                        )}
+
+                        {forgotStep === 1 ? (
+                            <form onSubmit={handleRequestOtp} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                        Número de DNI o Correo Registrado
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <User className="h-4 w-4 text-zinc-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={forgotIdentifier}
+                                            onChange={(e) => setForgotIdentifier(e.target.value)}
+                                            placeholder="Ingresa tu DNI o Correo"
+                                            className="block w-full pl-10 pr-3 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
+                                            required
+                                        />
+                                    </div>
+                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1.5 leading-normal">
+                                        💡 Se enviará un código OTP únicamente si la cuenta posee su **correo verificado (`isEmailVerified = true`)**.
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsForgotModalOpen(false)}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={forgotLoading}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-[#09357a] disabled:opacity-50 transition-colors flex items-center gap-2"
+                                    >
+                                        {forgotLoading ? (
+                                            <>
+                                                <svg className="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Enviando OTP...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Enviar Código OTP
+                                                <ArrowRight size={14} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleConfirmReset} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                                        Código de Verificación OTP (6 dígitos)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        maxLength={6}
+                                        value={forgotOtpCode}
+                                        onChange={(e) => setForgotOtpCode(e.target.value.replace(/\D/g, ""))}
+                                        placeholder="Ej: 482910"
+                                        className="block w-full text-center tracking-[8px] font-mono font-bold text-lg py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                        Nueva Contraseña
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Lock className="h-4 w-4 text-zinc-400" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            value={forgotNewPassword}
+                                            onChange={(e) => setForgotNewPassword(e.target.value)}
+                                            placeholder="Mínimo 8 caracteres"
+                                            className="block w-full pl-10 pr-3 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                        Confirmar Nueva Contraseña
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <Lock className="h-4 w-4 text-zinc-400" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            value={forgotConfirmPassword}
+                                            onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                                            placeholder="Repite la nueva contraseña"
+                                            className="block w-full pl-10 pr-3 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setForgotStep(1);
+                                            setForgotError("");
+                                            setForgotSuccessMsg("");
+                                        }}
+                                        className="text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 underline"
+                                    >
+                                        ← Regresar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={forgotLoading}
+                                        className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                                    >
+                                        {forgotLoading ? (
+                                            <>
+                                                <svg className="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Restableciendo...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Restablecer Contraseña
+                                                <CheckCircle2 size={14} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
