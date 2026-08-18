@@ -204,7 +204,7 @@ export function SurgeryTimeline({ surgeriesData, salas, displayDate, setDisplayD
                 <div className="flex items-center gap-4">
                     <h3 className="font-bold text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
                         <CalendarIcon size={18} className="text-[var(--color-hospital-blue)]" />
-                        Canvas de Programación Quirúrgica {isWeekView && `(${salas[0].name})`}
+                        Tablero {isWeekView && `(${salas[0].name})`}
                     </h3>
                 </div>
 
