@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, Fragment } from "react";
-import { LayoutGrid, List as ListIcon, Calendar, ArrowUp, ArrowDown, User, Clock, Hourglass, CheckCircle2, XCircle, FileText, Activity, AlertCircle, Pencil, CopyPlus, AlertTriangle, X, Filter, Search, Maximize2, Minimize2, LogOut } from "lucide-react";
+import { useState, useEffect, useMemo, Fragment } from "react";
+import { LayoutGrid, List as ListIcon, Calendar, ArrowUp, ArrowDown, User, Clock, Hourglass, CheckCircle2, XCircle, FileText, Activity, AlertCircle, Pencil, CopyPlus, AlertTriangle, X, Filter, Search, Maximize2, Minimize2, LogOut, Hospital, Stethoscope, UserCheck } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -282,6 +282,22 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
     const [filterCopri, setFilterCopri] = useState<string>("all");
     const [filterRescheduled, setFilterRescheduled] = useState<string>("all");
     const [filterAnesthesia, setFilterAnesthesia] = useState<string[]>([]);
+    const [filterOnlyMySurgeries, setFilterOnlyMySurgeries] = useState<boolean>(false);
+
+    const mySurgeriesCount = useMemo(() => {
+        if (!currentUser?.id || !surgeriesData) return 0;
+        return surgeriesData.filter(s => 
+            s.surgery.status !== 'cancelled' &&
+            s.team && 
+            s.team.some((t: any) => 
+                t.staffUserId === currentUser.id || 
+                t.userId === currentUser.id || 
+                t.staffId === currentUser.id ||
+                (t.staff && t.staff.userId === currentUser.id)
+            )
+        ).length;
+    }, [surgeriesData, currentUser]);
+
     const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
     const [isListFullscreen, setIsListFullscreen] = useState<boolean>(forceTvMode || false);
     const [isBrowserFullscreen, setIsBrowserFullscreen] = useState<boolean>(false);
@@ -593,6 +609,17 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
             }
         }
 
+        if (filterOnlyMySurgeries) {
+            if (!currentUser?.id || !s.team || s.team.length === 0) return false;
+            const isUserInTeam = s.team.some((t: any) => 
+                t.staffUserId === currentUser.id || 
+                t.userId === currentUser.id || 
+                t.staffId === currentUser.id ||
+                (t.staff && t.staff.userId === currentUser.id)
+            );
+            if (!isUserInTeam) return false;
+        }
+
         return true;
     });
 
@@ -716,9 +743,36 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1 font-medium">Panel de control</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="bg-emerald-50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200/50 dark:border-emerald-800/50 shadow-sm hidden sm:block">
-                        {surgeriesData.filter(s => s.surgery.status !== 'cancelled').length} Activas
+                    {/* Insignia Agenda Central del Hospital */}
+                    <span 
+                        className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm hidden sm:flex items-center gap-1.5 shrink-0"
+                        title="Total de cirugías programadas en la agenda central del hospital para la fecha seleccionada"
+                    >
+                        <Hospital size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>Agenda Central: {surgeriesData.filter(s => s.surgery.status !== 'cancelled').length} Programadas</span>
                     </span>
+
+                    {/* Botón / Pastilla Interactiva Mis Cirugías */}
+                    {currentUser && (
+                        <button
+                            type="button"
+                            onClick={() => setFilterOnlyMySurgeries(prev => !prev)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-sm transition-all cursor-pointer shrink-0 ${
+                                filterOnlyMySurgeries
+                                    ? "bg-indigo-600 text-white border-indigo-500 ring-2 ring-indigo-400/50 shadow-indigo-500/20"
+                                    : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60"
+                            }`}
+                            title={filterOnlyMySurgeries ? "Mostrando solo las cirugías donde estás asignado como equipo médico. Haz clic para ver toda la agenda central del hospital." : "Filtrar la tabla para mostrar únicamente tus cirugías asignadas"}
+                        >
+                            <Stethoscope size={14} className={filterOnlyMySurgeries ? "text-white" : "text-indigo-600 dark:text-indigo-400"} />
+                            <span>Mis Cirugías ({mySurgeriesCount})</span>
+                            {filterOnlyMySurgeries && (
+                                <span className="ml-1 text-[9px] bg-white/25 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider font-extrabold">
+                                    Filtrado
+                                </span>
+                            )}
+                        </button>
+                    )}
 
                     {currentUser && (
                         (() => {
