@@ -819,18 +819,6 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                         })()
                     )}
 
-                    <button
-                        onClick={async () => {
-                            await signOut({ redirect: false });
-                            window.location.href = "/login";
-                        }}
-                        className="bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-2 rounded-xl text-xs font-bold border border-red-200/50 dark:border-red-900/50 shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
-                        title="Cerrar sesión"
-                    >
-                        <LogOut size={14} />
-                        <span className="hidden sm:inline">Cerrar Sesión</span>
-                    </button>
-
                     {viewMode === 'list' && (
                         <button
                             onClick={handleToggleFullscreen}

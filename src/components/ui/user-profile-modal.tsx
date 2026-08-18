@@ -15,8 +15,10 @@ import {
   AlertCircle, 
   Loader2, 
   Search,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { 
   getUserProfileSelfAction, 
   getUbigeoSuggestionsAction, 
@@ -38,8 +40,20 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
   // Form State
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut({ redirect: false });
+    } catch (e) {
+      console.error("Error al cerrar sesión", e);
+    } finally {
+      window.location.href = "/login";
+    }
+  };
 
   // Read-only user data
   const [name, setName] = useState("");
@@ -621,28 +635,50 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                 )}
 
                 {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800">
                   <button
                     type="button"
-                    onClick={onClose}
-                    disabled={submitting}
-                    className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut || submitting}
+                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 hover:bg-rose-100/90 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200/70 dark:border-rose-900/60 rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                    title="Cerrar sesión de tu cuenta en el sistema"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
-                  >
-                    {submitting ? (
+                    {isSigningOut ? (
                       <>
-                        <Loader2 size={14} className="animate-spin" /> Guardando...
+                        <Loader2 size={14} className="animate-spin text-rose-600 dark:text-rose-400" />
+                        <span>Cerrando sesión...</span>
                       </>
                     ) : (
-                      "Guardar Cambios"
+                      <>
+                        <LogOut size={14} className="text-rose-600 dark:text-rose-400" />
+                        <span>Cerrar Sesión</span>
+                      </>
                     )}
                   </button>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      disabled={submitting || isSigningOut}
+                      className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting || isSigningOut}
+                      className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" /> Guardando...
+                        </>
+                      ) : (
+                        "Guardar Cambios"
+                      )}
+                    </button>
+                  </div>
                 </div>
               </>
             )}
