@@ -737,17 +737,35 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
             </div>
             
             {/* Header de Configuración y Toggles */}
-            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50/50 dark:bg-zinc-900/20">
-                <div>
-                    <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center tracking-tight">
-                        <Activity size={20} className="mr-2 text-[var(--color-hospital-blue)]" />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-zinc-100 dark:border-zinc-800 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 bg-zinc-50/50 dark:bg-zinc-900/20">
+                <div className="flex items-center shrink-0">
+                    <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white flex items-center tracking-tight whitespace-nowrap">
+                        <Activity size={18} className="mr-2 text-[var(--color-hospital-blue)] shrink-0" />
                         Agenda Quirúrgica
                     </h3>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:flex-nowrap justify-end ml-auto">
+                    {/* Switch de Modo de Vista (Lista / Timeline) - SIEMPRE VISIBLE */}
+                    <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex items-center gap-0.5 border border-zinc-200 dark:border-zinc-700 shadow-inner shrink-0">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            title="Vista Lista"
+                            className={`flex items-center justify-center p-1.5 md:p-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                        >
+                            <ListIcon size={16} />
+                        </button>
+                        <button
+                            onClick={() => { setViewMode('timeline'); setIsListFullscreen(false); }}
+                            title="Vista Timeline (Línea de Tiempo)"
+                            className={`flex items-center justify-center p-1.5 md:p-2 rounded-lg text-xs md:text-sm font-semibold transition-all duration-300 ${viewMode === 'timeline' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                        >
+                            <LayoutGrid size={16} />
+                        </button>
+                    </div>
+
                     {/* Insignia Agenda Central del Hospital */}
                     <span 
-                        className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl text-xs font-bold border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm hidden sm:flex items-center gap-1.5 shrink-0"
+                        className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-xl text-xs font-bold border border-emerald-200/60 dark:border-emerald-800/60 shadow-sm hidden md:flex items-center gap-1.5 shrink-0"
                         title="Total de cirugías programadas en la agenda central del hospital para la fecha seleccionada"
                     >
                         <Hospital size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -759,7 +777,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                         <button
                             type="button"
                             onClick={() => setFilterOnlyMySurgeries(prev => !prev)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border shadow-sm transition-all cursor-pointer shrink-0 ${
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-xl text-xs font-bold border shadow-sm transition-all cursor-pointer shrink-0 ${
                                 filterOnlyMySurgeries
                                     ? "bg-indigo-600 text-white border-indigo-500 ring-2 ring-indigo-400/50 shadow-indigo-500/20"
                                     : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200/60 dark:border-indigo-800/60 hover:bg-indigo-100/80 dark:hover:bg-indigo-900/60"
@@ -769,7 +787,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             <Stethoscope size={14} className={filterOnlyMySurgeries ? "text-white" : "text-indigo-600 dark:text-indigo-400"} />
                             <span>Mis Cirugías ({mySurgeriesCount})</span>
                             {filterOnlyMySurgeries && (
-                                <span className="ml-1 text-[9px] bg-white/25 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider font-extrabold">
+                                <span className="ml-0.5 text-[9px] bg-white/25 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider font-extrabold hidden xs:inline-block">
                                     Filtrado
                                 </span>
                             )}
@@ -824,28 +842,12 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     {viewMode === 'list' && (
                         <button
                             onClick={handleToggleFullscreen}
-                            className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 p-2 rounded-xl transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center gap-2"
+                            className="bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 p-1.5 md:p-2 rounded-xl transition-colors border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center gap-2 shrink-0"
                             title={isListFullscreen ? "Salir de pantalla completa" : "Pantalla completa"}
                         >
                             {isListFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                         </button>
                     )}
-                    <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl flex items-center gap-1 border border-zinc-200 dark:border-zinc-700 shadow-inner">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            title="Vista Lista"
-                            className={`flex items-center justify-center p-2 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-                        >
-                            <ListIcon size={16} />
-                        </button>
-                        <button
-                            onClick={() => { setViewMode('timeline'); setIsListFullscreen(false); }}
-                            title="Vista Timeline (Línea de Tiempo)"
-                            className={`flex items-center justify-center p-2 rounded-lg text-sm font-semibold transition-all duration-300 ${viewMode === 'timeline' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-zinc-200 dark:ring-zinc-600' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
-                        >
-                            <LayoutGrid size={16} />
-                        </button>
-                    </div>
                 </div>
             </div>
 
