@@ -123,12 +123,26 @@ export const authOptions: AuthOptions = {
                     } as any;
                 }
 
+                // Fetch dynamic live permissions from DB for instant RBAC updates
+                const permissionRows = await db.select({ action: permissionsTable.action })
+                    .from(userSystemRoles)
+                    .innerJoin(rolePermissions, eq(userSystemRoles.roleId, rolePermissions.roleId))
+                    .innerJoin(permissionsTable, eq(rolePermissions.permissionId, permissionsTable.id))
+                    .where(
+                        and(
+                            eq(userSystemRoles.userId, token.id as string),
+                            eq(userSystemRoles.systemId, 'backcq')
+                        )
+                    );
+
+                const livePermissions = permissionRows.map(p => p.action);
+
                 if (session.user) {
                     (session.user as any).id = token.id;
                     (session.user as any).dni = token.dni;
                     (session.user as any).name = token.name;
                     (session.user as any).lastname = token.lastname;
-                    (session.user as any).permissions = token.permissions || [];
+                    (session.user as any).permissions = livePermissions.length > 0 ? livePermissions : (token.permissions || []);
                     (session.user as any).mustChangePassword = !!token.mustChangePassword;
                     (session.user as any).isEmailVerified = !!user.isEmailVerified;
                     (session.user as any).isPhoneVerified = !!user.isPhoneVerified;
