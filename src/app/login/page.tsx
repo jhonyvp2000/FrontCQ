@@ -163,9 +163,10 @@ export default function LoginPage() {
                     </div>
 
                     <div className="mt-12 hidden md:block">
-                        <p className="text-xs text-blue-200/60 font-medium">
+                        <p className="text-xs text-blue-200/60 font-medium leading-relaxed">
                             Sistema de Gestión Centralizada<br/>
-                            OGESS Tarapoto Especializada
+                            OGESS Especializada<br/>
+                            Hospital II-2 Tarapoto
                         </p>
                     </div>
                 </div>
@@ -309,7 +310,7 @@ export default function LoginPage() {
 
                         <div className="mt-5 text-center">
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                                ¿Problemas de acceso? Contacta a <span className="font-bold text-[var(--color-hospital-blue)]">Informática / Sistemas</span>.
+                                ¿Problemas de acceso? Contacta a la <span className="font-bold text-[var(--color-hospital-blue)]">OTIC - 955 662 693</span>.
                             </p>
                         </div>
                     </div>
