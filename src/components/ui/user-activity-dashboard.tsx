@@ -374,6 +374,123 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         </div>
       </div>
 
+      {/* Filters Bar (Ubicado justo después y debajo del mensaje azul) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-xl bg-zinc-50/80 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 shadow-sm">
+        {/* Search */}
+        <div className="relative w-full sm:w-64">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por diagnóstico, procedimiento, sala..."
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+          <Search size={14} className="absolute left-2.5 top-2.5 text-zinc-400" />
+        </div>
+
+        {/* Export Buttons & Filters */}
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+          {/* Excel Export Button */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar registros filtrados a Excel"
+          >
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+
+          {/* PDF Export Button */}
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar / Imprimir reporte filtrado en PDF"
+          >
+            <FileText size={14} /> PDF
+          </button>
+
+          {/* Date Filter Dropdown */}
+          <select
+            value={datePreset}
+            onChange={(e) => setDatePreset(e.target.value)}
+            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="ALL">🗓️ Todas las Fechas</option>
+            <option value="TODAY">🟢 Hoy</option>
+            <option value="THIS_WEEK">📅 Esta Semana</option>
+            <option value="THIS_MONTH">📆 Este Mes</option>
+            <option value="LAST_MONTH">⏪ Mes Anterior</option>
+            <option value="THIS_YEAR">📊 Año {new Date().getFullYear()}</option>
+            <option value="CUSTOM">🔍 Rango Personalizado...</option>
+          </select>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="ALL">Todos los Estados</option>
+            <option value="completed">Realizadas</option>
+            <option value="scheduled">Programadas</option>
+            <option value="in_progress">En Curso</option>
+            <option value="cancelled">Suspendidas</option>
+          </select>
+
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <option value="ALL">Todos los Roles</option>
+            {uniqueRoles.map(role => (
+              <option key={role} value={role}>{role}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Custom Date Range Picker Expanded Bar */}
+      {datePreset === "CUSTOM" && (
+        <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-blue-50/60 dark:bg-zinc-800/60 border border-blue-200/80 dark:border-zinc-700">
+          <span className="text-xs font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+            <Calendar size={14} className="text-blue-600 dark:text-blue-400" /> Rango Personalizado:
+          </span>
+
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Desde:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-2.5 py-1 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Hasta:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-2.5 py-1 text-xs rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+            />
+          </div>
+
+          {(startDate || endDate) && (
+            <button
+              onClick={() => { setStartDate(""); setEndDate(""); }}
+              className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-bold ml-auto"
+            >
+              Limpiar Fechas
+            </button>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Card 1: Total Surgeries */}
@@ -527,127 +644,6 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por diagnóstico, procedimiento, sala..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          />
-          <Search size={14} className="absolute left-2.5 top-2.5 text-zinc-400" />
-        </div>
-
-        {/* Export Buttons & Filters */}
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-          {/* Excel Export Button */}
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            disabled={filteredHistory.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Exportar registros filtrados a Excel"
-          >
-            <FileSpreadsheet size={14} /> Excel
-          </button>
-
-          {/* PDF Export Button */}
-          <button
-            type="button"
-            onClick={handleExportPDF}
-            disabled={filteredHistory.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Exportar / Imprimir reporte filtrado en PDF"
-          >
-            <FileText size={14} /> PDF
-          </button>
-
-          {/* Date Filter Dropdown */}
-          <select
-            value={datePreset}
-            onChange={(e) => setDatePreset(e.target.value)}
-            className="px-3 py-1.5 text-xs font-bold rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            <option value="ALL">🗓️ Todas las Fechas</option>
-            <option value="TODAY">🟢 Hoy</option>
-            <option value="THIS_WEEK">📅 Esta Semana</option>
-            <option value="THIS_MONTH">📆 Este Mes</option>
-            <option value="LAST_MONTH">⏪ Mes Anterior</option>
-            <option value="THIS_YEAR">📊 Año {new Date().getFullYear()}</option>
-            <option value="CUSTOM">🔍 Rango Personalizado...</option>
-          </select>
-
-          {/* Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            <option value="ALL">Todos los Estados</option>
-            <option value="completed">Realizadas</option>
-            <option value="scheduled">Programadas</option>
-            <option value="in_progress">En Curso</option>
-            <option value="cancelled">Suspendidas</option>
-          </select>
-
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          >
-            <option value="ALL">Todos los Roles</option>
-            {uniqueRoles.map(role => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Custom Date Range Picker Expanded Bar */}
-      {datePreset === "CUSTOM" && (
-        <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-blue-50/60 dark:bg-zinc-800/60 border border-blue-200/80 dark:border-zinc-700">
-          <span className="text-xs font-bold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-            <Calendar size={14} className="text-blue-600 dark:text-blue-400" /> Rango Personalizado:
-          </span>
-
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Desde:</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">Hasta:</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-1 text-xs font-medium rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            />
-          </div>
-
-          {(startDate || endDate) && (
-            <button
-              type="button"
-              onClick={() => {
-                setStartDate("");
-                setEndDate("");
-              }}
-              className="px-2 py-1 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <XCircle size={14} /> Limpiar Rango
-            </button>
-          )}
         </div>
       )}
 
