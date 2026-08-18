@@ -487,28 +487,6 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
 
         {/* Export Buttons & Filters */}
         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-          {/* Excel Export Button */}
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            disabled={filteredHistory.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Exportar registros filtrados a Excel"
-          >
-            <FileSpreadsheet size={14} /> Excel
-          </button>
-
-          {/* PDF Export Button */}
-          <button
-            type="button"
-            onClick={handleExportPDF}
-            disabled={filteredHistory.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Exportar / Imprimir reporte filtrado en PDF"
-          >
-            <FileText size={14} /> PDF
-          </button>
-
           {/* Date Filter Dropdown */}
           <select
             value={datePreset}
@@ -537,6 +515,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
             <option value="cancelled">Suspendidas</option>
           </select>
 
+          {/* Role Filter */}
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -547,6 +526,28 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
               <option key={role} value={role}>{role}</option>
             ))}
           </select>
+
+          {/* Excel Export Button */}
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar registros filtrados a Excel"
+          >
+            <FileSpreadsheet size={14} /> Excel
+          </button>
+
+          {/* PDF Export Button */}
+          <button
+            type="button"
+            onClick={handleExportPDF}
+            disabled={filteredHistory.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800 transition-colors shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Exportar / Imprimir reporte filtrado en PDF"
+          >
+            <FileText size={14} /> PDF
+          </button>
         </div>
       </div>
 
