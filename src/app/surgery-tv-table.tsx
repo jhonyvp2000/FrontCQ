@@ -741,9 +741,8 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                 <div>
                     <h3 className="font-bold text-lg text-zinc-900 dark:text-white flex items-center tracking-tight">
                         <Activity size={20} className="mr-2 text-[var(--color-hospital-blue)]" />
-                        Agenda Central Intervenciones
+                        Agenda Quirúrgica
                     </h3>
-                    <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1 font-medium">Panel de control</p>
                 </div>
                 <div className="flex items-center gap-4">
                     {/* Insignia Agenda Central del Hospital */}
