@@ -3,13 +3,17 @@
 import { useState, useTransition } from "react";
 import { changePassword } from "@/app/actions/auth";
 import { signOut } from "next-auth/react";
-import { Lock, AlertCircle, ArrowRight, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { Lock, AlertCircle, ArrowRight, ShieldCheck, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function ChangePasswordPage() {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
@@ -103,14 +107,23 @@ export default function ChangePasswordPage() {
                                     <Lock className="h-4 w-4 text-zinc-400" />
                                 </div>
                                 <input
-                                    type="password"
+                                    type={showCurrentPassword ? "text" : "password"}
                                     value={currentPassword}
                                     onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
+                                    className="block w-full pl-10 pr-10 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
                                     placeholder="Ingresa tu clave actual"
                                     required
                                     disabled={isPending}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                    tabIndex={-1}
+                                    title={showCurrentPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                >
+                                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
                             </div>
                         </div>
 
@@ -123,14 +136,23 @@ export default function ChangePasswordPage() {
                                     <Lock className="h-4 w-4 text-zinc-400" />
                                 </div>
                                 <input
-                                    type="password"
+                                    type={showNewPassword ? "text" : "password"}
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
+                                    className="block w-full pl-10 pr-10 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
                                     placeholder="Mínimo 8 caracteres"
                                     required
                                     disabled={isPending}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                    tabIndex={-1}
+                                    title={showNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                >
+                                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
                             </div>
                         </div>
 
@@ -143,14 +165,23 @@ export default function ChangePasswordPage() {
                                     <Lock className="h-4 w-4 text-zinc-400" />
                                 </div>
                                 <input
-                                    type="password"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
+                                    className="block w-full pl-10 pr-10 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm"
                                     placeholder="Repite tu nueva contraseña"
                                     required
                                     disabled={isPending}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                    tabIndex={-1}
+                                    title={showConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                >
+                                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
                             </div>
                         </div>
 

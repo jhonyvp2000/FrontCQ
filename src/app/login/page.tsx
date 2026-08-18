@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, WifiOff, BookOpen, KeyRound, X, Mail, ShieldAlert } from "lucide-react";
+import { Stethoscope, Lock, User, AlertCircle, ArrowRight, CheckCircle2, ShieldCheck, WifiOff, BookOpen, KeyRound, X, Mail, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { checkIsInternalNetworkAction } from "@/app/actions/account-request";
 import { requestPasswordResetOtpAction, confirmPasswordResetOtpAction } from "@/app/actions/auth";
 
@@ -12,6 +12,7 @@ export default function LoginPage() {
     const router = useRouter();
     const [dni, setDni] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
     const [loading, setLoading] = useState(false);
@@ -24,6 +25,8 @@ export default function LoginPage() {
     const [forgotOtpCode, setForgotOtpCode] = useState("");
     const [forgotNewPassword, setForgotNewPassword] = useState("");
     const [forgotConfirmPassword, setForgotConfirmPassword] = useState("");
+    const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+    const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
     const [forgotLoading, setForgotLoading] = useState(false);
     const [forgotError, setForgotError] = useState("");
     const [forgotSuccessMsg, setForgotSuccessMsg] = useState("");
@@ -217,13 +220,22 @@ export default function LoginPage() {
                                         <Lock className="h-4 w-4 text-zinc-400" />
                                     </div>
                                     <input
-                                        type="password"
+                                        type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm tracking-widest placeholder:tracking-normal"
+                                        className="block w-full pl-10 pr-10 py-2.5 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent transition-all outline-none text-sm tracking-widest placeholder:tracking-normal"
                                         placeholder="••••••••"
                                         required
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                        tabIndex={-1}
+                                        title={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
                                 </div>
                             </div>
 
@@ -420,7 +432,7 @@ export default function LoginPage() {
                                     />
                                 </div>
 
-                                <div className="space-y-1.5">
+                                 <div className="space-y-1.5">
                                     <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300">
                                         Nueva Contraseña
                                     </label>
@@ -429,13 +441,22 @@ export default function LoginPage() {
                                             <Lock className="h-4 w-4 text-zinc-400" />
                                         </div>
                                         <input
-                                            type="password"
+                                            type={showForgotNewPassword ? "text" : "password"}
                                             value={forgotNewPassword}
                                             onChange={(e) => setForgotNewPassword(e.target.value)}
                                             placeholder="Mínimo 8 caracteres"
-                                            className="block w-full pl-10 pr-3 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
+                                            className="block w-full pl-10 pr-10 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
                                             required
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                            tabIndex={-1}
+                                            title={showForgotNewPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        >
+                                            {showForgotNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
 
@@ -448,13 +469,22 @@ export default function LoginPage() {
                                             <Lock className="h-4 w-4 text-zinc-400" />
                                         </div>
                                         <input
-                                            type="password"
+                                            type={showForgotConfirmPassword ? "text" : "password"}
                                             value={forgotConfirmPassword}
                                             onChange={(e) => setForgotConfirmPassword(e.target.value)}
                                             placeholder="Repite la nueva contraseña"
-                                            className="block w-full pl-10 pr-3 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
+                                            className="block w-full pl-10 pr-10 py-2 border border-zinc-200 dark:border-zinc-700/50 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-hospital-blue)] focus:border-transparent outline-none text-sm"
                                             required
                                         />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                                            tabIndex={-1}
+                                            title={showForgotConfirmPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                                        >
+                                            {showForgotConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
                                     </div>
                                 </div>
 
