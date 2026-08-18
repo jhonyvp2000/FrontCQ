@@ -35,8 +35,8 @@ export function UserActivityDashboard({ userId, userPermissions, currentUser }: 
   // Admin Permission Detection & Toggle State
   const hasAdminPermission = useMemo(() => {
     if (currentUser?.dni === "09791569") return true;
-    if (!userPermissions) return false;
-    return userPermissions.includes("ver_todas:programacion") || userPermissions.includes("ver:programacion");
+    if (!userPermissions || !Array.isArray(userPermissions)) return false;
+    return userPermissions.includes("ver_todas:programacion");
   }, [userPermissions, currentUser]);
 
   const [adminMode, setAdminMode] = useState(true);

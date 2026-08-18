@@ -9,7 +9,10 @@ import {
   cqSurgeryTeam,
   cqPatientPii,
   cqOperatingRooms,
-  professions
+  professions,
+  userSystemRoles,
+  rolePermissions,
+  permissionsTable
 } from "@/db/schema";
 import { eq, and, sql, gte, lte, desc, inArray } from "drizzle-orm";
 
@@ -201,17 +204,25 @@ export async function getUserSurgeryHistoryAction(userId: string, isAllSurgeries
       return { success: false, message: "ID de usuario no proporcionado." };
     }
 
-    // Check if current user is special / admin (e.g. Jhony Vela)
     const userObj = await db.query.usersTable.findFirst({
       where: eq(usersTable.id, userId)
     });
 
-    const isSpecialUser = userObj?.email === "jhonyvp2000@gmail.com" || userObj?.dni === "09791569";
+    // Check permissions in DB for admin access
+    const userSystemRolesList = await db.select({ action: permissionsTable.action })
+      .from(userSystemRoles)
+      .innerJoin(rolePermissions, eq(userSystemRoles.roleId, rolePermissions.roleId))
+      .innerJoin(permissionsTable, eq(rolePermissions.permissionId, permissionsTable.id))
+      .where(and(eq(userSystemRoles.userId, userId), eq(userSystemRoles.systemId, 'backcq')));
+
+    const permissions = userSystemRolesList.map(p => p.action);
+    const hasAdminPerm = permissions.includes('ver_todas:programacion') || userObj?.email === "jhonyvp2000@gmail.com" || userObj?.dni === "09791569";
+    const isSpecialUser = hasAdminPerm;
 
     let surgeries: any[] = [];
     const roleMap = new Map<string, string>();
 
-    if (isAllSurgeriesMode || isSpecialUser) {
+    if (isAllSurgeriesMode && hasAdminPerm) {
       // Query ALL surgeries with patient PII and operating room
       surgeries = await db.select({
         surgery: cqSurgeries,
