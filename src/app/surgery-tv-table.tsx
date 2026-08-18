@@ -626,6 +626,11 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
         return true;
     });
 
+    const timelineSurgeries = useMemo(() => {
+        if (!currentUser) return filteredSurgeries;
+        return filteredSurgeries.filter(s => isUserInSurgeryTeam(s, currentUser));
+    }, [filteredSurgeries, currentUser]);
+
     const compareByKey = (a: any, b: any, key: string) => {
         if (key === 'especialidad') {
             const nameA = a.specialty?.name || '';
@@ -1348,7 +1353,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             className="flex flex-col flex-grow min-h-0 p-4 md:p-6 overflow-y-auto"
                         >
                             <SurgeryTimeline 
-                                surgeriesData={baseFilteredSurgeries} 
+                                surgeriesData={timelineSurgeries} 
                                 salas={filterRoom.length === 0 ? salas : salas.filter(s => filterRoom.includes(s.id))} 
                                 displayDate={filterDate} 
                                 setDisplayDate={handleDateChange} 
@@ -1514,7 +1519,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             transition={{ duration: 0.2 }}
                             className="relative z-[100]"
                         >
-                            <SurgeryTimeline surgeriesData={baseFilteredSurgeries} salas={filterRoom.length === 0 ? salas : salas.filter(s => filterRoom.includes(s.id))} displayDate={filterDate} setDisplayDate={handleDateChange} diagnoses={diagnoses} procedures={procedures} interventions={interventions} staff={staff} onClose={() => setViewMode('list')} />
+                            <SurgeryTimeline surgeriesData={timelineSurgeries} salas={filterRoom.length === 0 ? salas : salas.filter(s => filterRoom.includes(s.id))} displayDate={filterDate} setDisplayDate={handleDateChange} diagnoses={diagnoses} procedures={procedures} interventions={interventions} staff={staff} onClose={() => setViewMode('list')} />
                         </motion.div>
                     )}
                 </AnimatePresence>,
