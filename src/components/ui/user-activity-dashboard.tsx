@@ -466,7 +466,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         <div className="text-xs text-blue-900 dark:text-blue-200">
           <p className="font-bold">Registro de Producción Asistencial y Protección de Datos Personales</p>
           <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">
-            Conforme a la Ley N° 29733 (Protección de Datos Personales) y Secreto Médico, la información del paciente se muestra completa para las cirugías del día de hoy en turno. En cirugías anteriores o futuras se mantiene enmascarada (iniciales e Historia Clínica).
+            Conforme a la Ley N° 29733 (Protección de Datos Personales) y Secreto Médico, la información del paciente se muestra completa para las cirugías del día de hoy en las que usted interviene. En cirugías anteriores o futuras se mantiene enmascarada (iniciales e Historia Clínica).
           </p>
         </div>
       </div>
