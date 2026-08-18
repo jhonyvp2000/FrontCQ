@@ -10,6 +10,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
     const session = await checkSession();
     const currentUser = session?.user ? {
         id: (session.user as any).id || (session.user as any).userId || "",
+        dni: (session.user as any).dni || "",
         name: session.user.name || "",
         lastname: (session.user as any).lastname || "",
         isEmailVerified: !!(session.user as any).isEmailVerified,

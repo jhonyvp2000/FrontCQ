@@ -154,7 +154,7 @@ export const formatDemographicsOnly = (patientPii: any, patient: any, bedNumber?
     return `(${sexStr} ${ageStr} HC: ${hcStr}${bloodGroupRh ? ` GFS: ${bloodGroupRh}` : ''})${bedNumber ? ` C: ${bedNumber}` : ''}`;
 };
 
-export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false, currentUser = null }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean, currentUser?: { id?: string; name: string; lastname: string; isEmailVerified?: boolean; isPhoneVerified?: boolean } | null }) {
+export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, staff, permissions = [], diagnoses = [], procedures = [], interventions = [], patients = [], initialDate = "", initialDateNew = "", forceTvMode = false, currentUser = null }: { surgeriesData: any[], salas: any[], sortParams: any, specialties?: any[], staff?: any, permissions?: string[], diagnoses?: any[], procedures?: any[], interventions?: any[], patients?: any[], initialDate?: string, initialDateNew?: string, forceTvMode?: boolean, currentUser?: { id?: string; name: string; lastname: string; dni?: string; isEmailVerified?: boolean; isPhoneVerified?: boolean } | null }) {
     const canEdit = permissions.includes('editar:programacion');
     const canCancel = permissions.includes('cancelar:programacion');
     const canAdvancePhase = permissions.includes('avanzar_fase:programacion');
@@ -284,17 +284,27 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
     const [filterAnesthesia, setFilterAnesthesia] = useState<string[]>([]);
     const [filterOnlyMySurgeries, setFilterOnlyMySurgeries] = useState<boolean>(false);
 
+    const isUserInSurgeryTeam = (s: any, user: any) => {
+        if (!user || (!user.id && !user.dni) || !s.team || s.team.length === 0) return false;
+        const userId = user.id;
+        const userDni = user.dni;
+
+        return s.team.some((t: any) => {
+            const memberId = t.staff?.id || t.staffUserId || t.staffId || t.userId;
+            const memberDni = t.staff?.dni || t.dni;
+
+            if (userId && memberId && memberId === userId) return true;
+            if (userDni && memberDni && memberDni === userDni) return true;
+
+            return false;
+        });
+    };
+
     const mySurgeriesCount = useMemo(() => {
-        if (!currentUser?.id || !surgeriesData) return 0;
+        if (!currentUser || !surgeriesData) return 0;
         return surgeriesData.filter(s => 
             s.surgery.status !== 'cancelled' &&
-            s.team && 
-            s.team.some((t: any) => 
-                t.staffUserId === currentUser.id || 
-                t.userId === currentUser.id || 
-                t.staffId === currentUser.id ||
-                (t.staff && t.staff.userId === currentUser.id)
-            )
+            isUserInSurgeryTeam(s, currentUser)
         ).length;
     }, [surgeriesData, currentUser]);
 
@@ -610,14 +620,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
         }
 
         if (filterOnlyMySurgeries) {
-            if (!currentUser?.id || !s.team || s.team.length === 0) return false;
-            const isUserInTeam = s.team.some((t: any) => 
-                t.staffUserId === currentUser.id || 
-                t.userId === currentUser.id || 
-                t.staffId === currentUser.id ||
-                (t.staff && t.staff.userId === currentUser.id)
-            );
-            if (!isUserInTeam) return false;
+            if (!isUserInSurgeryTeam(s, currentUser)) return false;
         }
 
         return true;
