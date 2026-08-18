@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Activity, 
   CheckCircle2, 
@@ -29,7 +29,6 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [filteredHistory, setFilteredHistory] = useState<any[]>([]);
 
   // Filter & Pagination States
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,29 +59,26 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
 
     if (historyRes.success && historyRes.history) {
       setHistory(historyRes.history);
-      setFilteredHistory(historyRes.history);
     }
 
     setLoading(false);
   };
 
-  // Apply filters
-  useEffect(() => {
+  // 1. Base Filtered History (matching Search, Role, and Date filters)
+  const baseFilteredHistory = useMemo(() => {
     let result = [...history];
 
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       result = result.filter(item => 
-        item.diagnosis.toLowerCase().includes(q) ||
-        item.procedure.toLowerCase().includes(q) ||
-        item.roomName.toLowerCase().includes(q) ||
-        item.roleInSurgery.toLowerCase().includes(q) ||
-        (item.patient?.name && item.patient.name.toLowerCase().includes(q))
+        (item.diagnosis && item.diagnosis.toLowerCase().includes(q)) ||
+        (item.procedure && item.procedure.toLowerCase().includes(q)) ||
+        (item.roomName && item.roomName.toLowerCase().includes(q)) ||
+        (item.roleInSurgery && item.roleInSurgery.toLowerCase().includes(q)) ||
+        (item.patient?.name && item.patient.name.toLowerCase().includes(q)) ||
+        (item.patient?.dni && item.patient.dni.toLowerCase().includes(q)) ||
+        (item.patient?.hcNumber && item.patient.hcNumber.toLowerCase().includes(q))
       );
-    }
-
-    if (statusFilter !== "ALL") {
-      result = result.filter(item => item.status === statusFilter);
     }
 
     if (roleFilter !== "ALL") {
@@ -152,9 +148,63 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
       }
     }
 
-    setFilteredHistory(result);
+    return result;
+  }, [history, searchTerm, roleFilter, datePreset, startDate, endDate]);
+
+  // 2. Final Filtered History (table items, with statusFilter)
+  const filteredHistory = useMemo(() => {
+    if (statusFilter === "ALL") return baseFilteredHistory;
+
+    return baseFilteredHistory.filter(item => {
+      if (statusFilter === "completed") return item.status === "completed";
+      if (statusFilter === "cancelled") return item.status === "cancelled";
+      if (statusFilter === "scheduled") {
+        return ['scheduled', 'in_progress', 'anesthesia_start', 'pre_incision', 'surgery_end', 'patient_exit', 'urpa_exit'].includes(item.status);
+      }
+      return item.status === statusFilter;
+    });
+  }, [baseFilteredHistory, statusFilter]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, roleFilter, datePreset, startDate, endDate, history]);
+  }, [searchTerm, statusFilter, roleFilter, datePreset, startDate, endDate]);
+
+  // 3. Dynamic Stats calculated from baseFilteredHistory
+  const dynamicStats = useMemo(() => {
+    const totalSurgeries = baseFilteredHistory.length;
+    const completedSurgeries = baseFilteredHistory.filter(item => item.status === 'completed').length;
+    const scheduledSurgeries = baseFilteredHistory.filter(item => 
+      ['scheduled', 'in_progress', 'anesthesia_start', 'pre_incision', 'surgery_end', 'patient_exit', 'urpa_exit'].includes(item.status)
+    ).length;
+    const cancelledSurgeries = baseFilteredHistory.filter(item => item.status === 'cancelled').length;
+
+    const effectivenessRate = totalSurgeries > 0 
+      ? Math.round((completedSurgeries / totalSurgeries) * 100) 
+      : 0;
+
+    const mayorCount = baseFilteredHistory.filter(item => item.surgeryType === 'Cirugía Mayor').length;
+    const menorCount = baseFilteredHistory.filter(item => item.surgeryType === 'Cirugía Menor').length;
+    const electivasCount = baseFilteredHistory.filter(item => item.urgencyType === 'ELECTIVO').length;
+    const emergenciaCount = baseFilteredHistory.filter(item => item.urgencyType === 'EMERGENCIA').length;
+
+    const rolesBreakdown: Record<string, number> = {};
+    baseFilteredHistory.forEach(item => {
+      const r = item.roleInSurgery || "ASISTENCIAL";
+      rolesBreakdown[r] = (rolesBreakdown[r] || 0) + 1;
+    });
+
+    return {
+      totalSurgeries,
+      completedSurgeries,
+      scheduledSurgeries,
+      cancelledSurgeries,
+      effectivenessRate,
+      typeBreakdown: { mayor: mayorCount, menor: menorCount },
+      urgencyBreakdown: { electiva: electivasCount, emergencia: emergenciaCount },
+      rolesBreakdown
+    };
+  }, [baseFilteredHistory]);
 
   const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -327,7 +377,15 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* Card 1: Total Surgeries */}
-        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+        <div 
+          onClick={() => setStatusFilter("ALL")}
+          className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+            statusFilter === "ALL" 
+              ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 ring-2 ring-blue-500/30 shadow-md shadow-blue-500/10" 
+              : "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-zinc-700"
+          }`}
+          title="Ver todas las cirugías según los filtros activos"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Total Participadas</span>
             <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
@@ -336,7 +394,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           </div>
           <div className="mt-3">
             <p className="text-2xl font-black text-zinc-900 dark:text-white leading-none">
-              {stats?.totalSurgeries || 0}
+              {dynamicStats.totalSurgeries}
             </p>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
               Cirugías registradas en tu historial
@@ -345,7 +403,15 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         </div>
 
         {/* Card 2: Completed / Rate */}
-        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+        <div 
+          onClick={() => setStatusFilter("completed")}
+          className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+            statusFilter === "completed" 
+              ? "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-700 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/10" 
+              : "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800 hover:border-emerald-300 dark:hover:border-zinc-700"
+          }`}
+          title="Filtrar solo cirugías realizadas"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Realizadas</span>
             <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
@@ -355,10 +421,10 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           <div className="mt-3">
             <div className="flex items-baseline gap-2">
               <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 leading-none">
-                {stats?.completedSurgeries || 0}
+                {dynamicStats.completedSurgeries}
               </p>
               <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">
-                ({stats?.effectivenessRate || 0}%)
+                ({dynamicStats.effectivenessRate}%)
               </span>
             </div>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
@@ -368,7 +434,15 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         </div>
 
         {/* Card 3: Scheduled / In Progress */}
-        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+        <div 
+          onClick={() => setStatusFilter("scheduled")}
+          className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+            statusFilter === "scheduled" 
+              ? "bg-amber-50/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-700 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/10" 
+              : "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800 hover:border-amber-300 dark:hover:border-zinc-700"
+          }`}
+          title="Filtrar solo cirugías programadas o en curso"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Programadas / En Curso</span>
             <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
@@ -377,7 +451,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           </div>
           <div className="mt-3">
             <p className="text-2xl font-black text-amber-600 dark:text-amber-400 leading-none">
-              {stats?.scheduledSurgeries || 0}
+              {dynamicStats.scheduledSurgeries}
             </p>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
               Cirugías pendientes o activas
@@ -386,7 +460,15 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         </div>
 
         {/* Card 4: Cancelled / Suspended */}
-        <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-800 flex flex-col justify-between">
+        <div 
+          onClick={() => setStatusFilter("cancelled")}
+          className={`p-4 rounded-2xl border flex flex-col justify-between cursor-pointer transition-all duration-200 hover:scale-[1.02] ${
+            statusFilter === "cancelled" 
+              ? "bg-red-50/90 dark:bg-red-950/40 border-red-400 dark:border-red-700 ring-2 ring-red-500/30 shadow-md shadow-red-500/10" 
+              : "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800 hover:border-red-300 dark:hover:border-zinc-700"
+          }`}
+          title="Filtrar solo cirugías suspendidas"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Suspendidas</span>
             <div className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400">
@@ -395,7 +477,7 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           </div>
           <div className="mt-3">
             <p className="text-2xl font-black text-red-600 dark:text-red-400 leading-none">
-              {stats?.cancelledSurgeries || 0}
+              {dynamicStats.cancelledSurgeries}
             </p>
             <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
               Cirugías no ejecutadas
@@ -409,32 +491,32 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Tipo Cirugía:</span>
           <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
-            Mayor: {stats?.typeBreakdown?.mayor || 0}
+            Mayor: {dynamicStats.typeBreakdown.mayor}
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-            Menor: {stats?.typeBreakdown?.menor || 0}
+            Menor: {dynamicStats.typeBreakdown.menor}
           </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Urgencia:</span>
           <span className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 border border-red-200 text-xs font-bold">
-            Emergencia: {stats?.urgencyBreakdown?.emergencia || 0}
+            Emergencia: {dynamicStats.urgencyBreakdown.emergencia}
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-            Electivo: {stats?.urgencyBreakdown?.electivo || 0}
+            Electivo: {dynamicStats.urgencyBreakdown.electiva}
           </span>
         </div>
       </div>
 
       {/* Roles Breakdown Chips */}
-      {stats?.rolesBreakdown && Object.keys(stats.rolesBreakdown).length > 0 && (
+      {dynamicStats.rolesBreakdown && Object.keys(dynamicStats.rolesBreakdown).length > 0 && (
         <div className="p-3.5 rounded-xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
             Participación por Rol Quirúrgico
           </p>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(stats.rolesBreakdown).map(([role, count]) => (
+            {Object.entries(dynamicStats.rolesBreakdown).map(([role, count]) => (
               <div 
                 key={role}
                 className="px-3 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm flex items-center gap-2 text-xs"
