@@ -128,10 +128,14 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
     setLoading(false);
   };
 
+  const [isPasswordSuccess, setIsPasswordSuccess] = useState(false);
+
+  // Reset form on close or tab switch
   const resetForm = () => {
     setActiveTab("profile");
     setErrorMessage("");
     setSuccessMessage("");
+    setIsPasswordSuccess(false);
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -252,18 +256,37 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
     });
 
     if (res.success) {
-      setSuccessMessage(res.message || "Perfil actualizado con éxito.");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      if (activeTab === "password") {
+        setIsPasswordSuccess(true);
+        setSuccessMessage("¡Contraseña actualizada con éxito!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
 
-      if (onProfileUpdated) {
-        onProfileUpdated();
+        if (onProfileUpdated) {
+          onProfileUpdated();
+        }
+
+        setTimeout(() => {
+          setIsPasswordSuccess(false);
+          setSuccessMessage("");
+          setActiveTab("profile");
+          onClose();
+        }, 2200);
+      } else {
+        setSuccessMessage(res.message || "Perfil actualizado con éxito.");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+
+        if (onProfileUpdated) {
+          onProfileUpdated();
+        }
+
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
       }
-
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 3000);
     } else {
       setErrorMessage(res.message || "Ocurrió un error al actualizar el perfil.");
     }
@@ -588,50 +611,78 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
 
                 {/* TAB 2: Change Password */}
                 {activeTab === "password" && (
-                  <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-xs font-medium">
-                      🔒 Ingresa tu contraseña actual únicamente si deseas establecer una nueva contraseña de acceso.
+                  isPasswordSuccess ? (
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl animate-in zoom-in-95 duration-200">
+                      <div className="w-14 h-14 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner">
+                        <CheckCircle2 size={36} className="animate-bounce" />
+                      </div>
+                      <h4 className="text-base font-bold text-zinc-900 dark:text-white">
+                        ¡Contraseña Actualizada con Éxito!
+                      </h4>
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xs leading-relaxed font-medium">
+                        Tu nueva clave de acceso ha sido guardada correctamente. La ventana se cerrará automáticamente...
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsPasswordSuccess(false);
+                          setSuccessMessage("");
+                          setActiveTab("profile");
+                          onClose();
+                        }}
+                        className="mt-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        Aceptar y Cerrar
+                      </button>
                     </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {!successMessage && (
+                        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-xs font-medium">
+                          🔒 Ingresa tu contraseña actual únicamente si deseas establecer una nueva contraseña de acceso.
+                        </div>
+                      )}
 
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-                        <Key size={14} className="text-zinc-400" /> Contraseña Actual
-                      </label>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                          <Key size={14} className="text-zinc-400" /> Contraseña Actual
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-                        <Lock size={14} className="text-zinc-400" /> Nueva Contraseña (mínimo 6 caracteres)
-                      </label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                      />
-                    </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                          <Lock size={14} className="text-zinc-400" /> Nueva Contraseña (mínimo 8 caracteres)
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        />
+                      </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
-                        <Lock size={14} className="text-zinc-400" /> Confirmar Nueva Contraseña
-                      </label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
-                      />
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1 flex items-center gap-1.5">
+                          <Lock size={14} className="text-zinc-400" /> Confirmar Nueva Contraseña
+                        </label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )
                 )}
 
                 {/* Footer Buttons */}
@@ -663,21 +714,23 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                       disabled={submitting || isSigningOut}
                       className="px-4 py-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors cursor-pointer"
                     >
-                      Cancelar
+                      {isPasswordSuccess ? "Cerrar" : "Cancelar"}
                     </button>
-                    <button
-                      type="submit"
-                      disabled={submitting || isSigningOut}
-                      className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" /> Guardando...
-                        </>
-                      ) : (
-                        "Guardar Cambios"
-                      )}
-                    </button>
+                    {!isPasswordSuccess && (
+                      <button
+                        type="submit"
+                        disabled={submitting || isSigningOut}
+                        className="flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[var(--color-hospital-blue)] hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/20 transition-all disabled:opacity-50 cursor-pointer"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" /> Guardando...
+                          </>
+                        ) : (
+                          "Guardar Cambios"
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               </>
