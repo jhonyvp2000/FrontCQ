@@ -154,7 +154,7 @@ export default function LoginPage() {
                             <span className="text-xl tracking-widest font-extrabold uppercase mt-0.5">BACKCQ</span>
                         </div>
                         <h1 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-                            Bienvenido Quirófano
+                            Agenda Quirúrgica
                         </h1>
                         <p className="text-blue-100 text-sm leading-relaxed opacity-90">
                             Central de accesos y configuración de módulos del sistema OGESS. Ingresa para gestionar
