@@ -91,7 +91,7 @@ export async function validateStaffIdentityAction(data: ValidateStaffIdentityInp
     if (!user) {
       return {
         success: false,
-        message: "No se encontró ningún registro del personal asistencial con este DNI. Por favor comuníquese con la Administración o Jefatura de Centro Quirúrgico.",
+        message: "No se encontró ningún registro del personal asistencial con este DNI. Por favor comuníquese con la Administración o Jefatura de Centro Quirúrgico o al WhatsApp 955 662 693.",
       };
     }
 
