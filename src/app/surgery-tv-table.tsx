@@ -1377,7 +1377,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             transition={{ duration: 0.2 }}
                             className="p-4 md:p-6 flex flex-col flex-grow overflow-y-auto"
                         >
-                            <UserActivityDashboard userId={currentUser?.id || ""} />
+                            <UserActivityDashboard userId={currentUser?.id || ""} userPermissions={permissions} currentUser={currentUser} />
                         </motion.div>
                     )}
                 </AnimatePresence>

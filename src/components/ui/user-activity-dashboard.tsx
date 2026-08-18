@@ -23,12 +23,23 @@ import * as XLSX from "xlsx";
 
 interface UserActivityDashboardProps {
   userId: string;
+  userPermissions?: string[];
+  currentUser?: any;
 }
 
-export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
+export function UserActivityDashboard({ userId, userPermissions, currentUser }: UserActivityDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+
+  // Admin Permission Detection & Toggle State
+  const hasAdminPermission = useMemo(() => {
+    if (currentUser?.dni === "09791569") return true;
+    if (!userPermissions) return false;
+    return userPermissions.includes("ver_todas:programacion") || userPermissions.includes("ver:programacion");
+  }, [userPermissions, currentUser]);
+
+  const [adminMode, setAdminMode] = useState(true);
 
   // Filter & Pagination States
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,15 +53,15 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
 
   useEffect(() => {
     if (userId) {
-      loadDashboardData();
+      loadDashboardData(hasAdminPermission ? adminMode : false);
     }
-  }, [userId]);
+  }, [userId, adminMode, hasAdminPermission]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (isAllMode: boolean = adminMode) => {
     setLoading(true);
     const [statsRes, historyRes] = await Promise.all([
-      getUserSurgeryStatsAction(userId),
-      getUserSurgeryHistoryAction(userId)
+      getUserSurgeryStatsAction(userId, isAllMode),
+      getUserSurgeryHistoryAction(userId, isAllMode)
     ]);
 
     if (statsRes.success) {
@@ -548,6 +559,29 @@ export function UserActivityDashboard({ userId }: UserActivityDashboardProps) {
           >
             <FileText size={14} /> PDF
           </button>
+
+          {/* Admin Mode Switch Toggle (Acceso Total) */}
+          {hasAdminPermission && (
+            <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-blue-50/90 dark:bg-blue-950/50 text-blue-900 dark:text-blue-200 border border-blue-200/80 dark:border-blue-800/80 shadow-sm">
+              <ShieldCheck size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[11px] font-extrabold leading-none">Modo Admin</span>
+                <span className="text-[9px] font-normal text-blue-700 dark:text-blue-300 leading-tight">
+                  {adminMode ? "Todas las cirugías" : "Mis cirugías"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdminMode(prev => !prev)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ml-1 ${adminMode ? "bg-[var(--color-hospital-blue)]" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                title={adminMode ? "Ver todas las cirugías del hospital" : "Ver solo mis cirugías asistenciales"}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${adminMode ? "translate-x-4" : "translate-x-0"}`}
+                />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

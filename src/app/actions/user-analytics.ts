@@ -97,42 +97,55 @@ export async function getMaskedPatientPii(
 // ----------------------------------------------------
 // SERVER ACTION 1: FETCH USER SURGERY STATS
 // ----------------------------------------------------
-export async function getUserSurgeryStatsAction(userId: string) {
+export async function getUserSurgeryStatsAction(userId: string, isAllSurgeriesMode: boolean = false) {
   try {
     if (!userId) {
       return { success: false, message: "ID de usuario no proporcionado." };
     }
 
-    // Query all surgery team entries for this user
-    const teamEntries = await db.select({
-      surgeryId: cqSurgeryTeam.surgeryId,
-      roleInSurgery: cqSurgeryTeam.roleInSurgery,
-    })
-    .from(cqSurgeryTeam)
-    .where(eq(cqSurgeryTeam.staffUserId, userId));
+    let surgeries: any[] = [];
+    let rolesBreakdown: Record<string, number> = {};
 
-    if (teamEntries.length === 0) {
-      return {
-        success: true,
-        stats: {
-          totalSurgeries: 0,
-          completedSurgeries: 0,
-          scheduledSurgeries: 0,
-          cancelledSurgeries: 0,
-          effectivenessRate: 0,
-          rolesBreakdown: {},
-          urgencyBreakdown: { emergencia: 0, electivo: 0 },
-          typeBreakdown: { mayor: 0, menor: 0 },
-        }
-      };
+    if (isAllSurgeriesMode) {
+      surgeries = await db.select().from(cqSurgeries);
+      rolesBreakdown["TODOS LOS ROLES (ADMIN)"] = surgeries.length;
+    } else {
+      // Query all surgery team entries for this user
+      const teamEntries = await db.select({
+        surgeryId: cqSurgeryTeam.surgeryId,
+        roleInSurgery: cqSurgeryTeam.roleInSurgery,
+      })
+      .from(cqSurgeryTeam)
+      .where(eq(cqSurgeryTeam.staffUserId, userId));
+
+      if (teamEntries.length === 0) {
+        return {
+          success: true,
+          stats: {
+            totalSurgeries: 0,
+            completedSurgeries: 0,
+            scheduledSurgeries: 0,
+            cancelledSurgeries: 0,
+            effectivenessRate: 0,
+            rolesBreakdown: {},
+            urgencyBreakdown: { emergencia: 0, electivo: 0 },
+            typeBreakdown: { mayor: 0, menor: 0 },
+          }
+        };
+      }
+
+      const surgeryIds = Array.from(new Set(teamEntries.map(t => t.surgeryId)));
+
+      // Fetch surgery records
+      surgeries = await db.select()
+        .from(cqSurgeries)
+        .where(inArray(cqSurgeries.id, surgeryIds));
+
+      teamEntries.forEach(t => {
+        const r = t.roleInSurgery || "ASISTENCIAL";
+        rolesBreakdown[r] = (rolesBreakdown[r] || 0) + 1;
+      });
     }
-
-    const surgeryIds = Array.from(new Set(teamEntries.map(t => t.surgeryId)));
-
-    // Fetch surgery records
-    const surgeries = await db.select()
-      .from(cqSurgeries)
-      .where(inArray(cqSurgeries.id, surgeryIds));
 
     let completedSurgeries = 0;
     let scheduledSurgeries = 0;
@@ -160,13 +173,6 @@ export async function getUserSurgeryStatsAction(userId: string) {
       ? Math.round((completedSurgeries / activeOrCompleted) * 100) 
       : 0;
 
-    // Roles Breakdown
-    const rolesBreakdown: Record<string, number> = {};
-    teamEntries.forEach(t => {
-      const r = t.roleInSurgery || "ASISTENCIAL";
-      rolesBreakdown[r] = (rolesBreakdown[r] || 0) + 1;
-    });
-
     return {
       success: true,
       stats: {
@@ -189,7 +195,7 @@ export async function getUserSurgeryStatsAction(userId: string) {
 // ----------------------------------------------------
 // SERVER ACTION 2: FETCH USER SURGERY HISTORY (WITH PII PROTECTION)
 // ----------------------------------------------------
-export async function getUserSurgeryHistoryAction(userId: string) {
+export async function getUserSurgeryHistoryAction(userId: string, isAllSurgeriesMode: boolean = false) {
   try {
     if (!userId) {
       return { success: false, message: "ID de usuario no proporcionado." };
@@ -202,36 +208,50 @@ export async function getUserSurgeryHistoryAction(userId: string) {
 
     const isSpecialUser = userObj?.email === "jhonyvp2000@gmail.com" || userObj?.dni === "09791569";
 
-    // Query surgeries where user is team member
-    const teamEntries = await db.select({
-      surgeryId: cqSurgeryTeam.surgeryId,
-      roleInSurgery: cqSurgeryTeam.roleInSurgery,
-    })
-    .from(cqSurgeryTeam)
-    .where(eq(cqSurgeryTeam.staffUserId, userId));
-
-    if (teamEntries.length === 0) {
-      return { success: true, history: [] };
-    }
-
+    let surgeries: any[] = [];
     const roleMap = new Map<string, string>();
-    teamEntries.forEach(t => {
-      roleMap.set(t.surgeryId, t.roleInSurgery || "ASISTENCIAL");
-    });
 
-    const surgeryIds = Array.from(roleMap.keys());
+    if (isAllSurgeriesMode || isSpecialUser) {
+      // Query ALL surgeries with patient PII and operating room
+      surgeries = await db.select({
+        surgery: cqSurgeries,
+        patientPii: cqPatientPii,
+        roomName: cqOperatingRooms.name,
+      })
+      .from(cqSurgeries)
+      .leftJoin(cqPatientPii, eq(cqSurgeries.patientId, cqPatientPii.patientId))
+      .leftJoin(cqOperatingRooms, eq(cqSurgeries.operatingRoomId, cqOperatingRooms.id))
+      .orderBy(desc(cqSurgeries.scheduledDate));
+    } else {
+      // Query surgeries where user is team member
+      const teamEntries = await db.select({
+        surgeryId: cqSurgeryTeam.surgeryId,
+        roleInSurgery: cqSurgeryTeam.roleInSurgery,
+      })
+      .from(cqSurgeryTeam)
+      .where(eq(cqSurgeryTeam.staffUserId, userId));
 
-    // Fetch detailed surgeries with patient PII and operating room
-    const surgeries = await db.select({
-      surgery: cqSurgeries,
-      patientPii: cqPatientPii,
-      roomName: cqOperatingRooms.name,
-    })
-    .from(cqSurgeries)
-    .leftJoin(cqPatientPii, eq(cqSurgeries.patientId, cqPatientPii.patientId))
-    .leftJoin(cqOperatingRooms, eq(cqSurgeries.operatingRoomId, cqOperatingRooms.id))
-    .where(inArray(cqSurgeries.id, surgeryIds))
-    .orderBy(desc(cqSurgeries.scheduledDate));
+      if (teamEntries.length === 0) {
+        return { success: true, history: [] };
+      }
+
+      teamEntries.forEach(t => {
+        roleMap.set(t.surgeryId, t.roleInSurgery || "ASISTENCIAL");
+      });
+
+      const surgeryIds = Array.from(roleMap.keys());
+
+      surgeries = await db.select({
+        surgery: cqSurgeries,
+        patientPii: cqPatientPii,
+        roomName: cqOperatingRooms.name,
+      })
+      .from(cqSurgeries)
+      .leftJoin(cqPatientPii, eq(cqSurgeries.patientId, cqPatientPii.patientId))
+      .leftJoin(cqOperatingRooms, eq(cqSurgeries.operatingRoomId, cqOperatingRooms.id))
+      .where(inArray(cqSurgeries.id, surgeryIds))
+      .orderBy(desc(cqSurgeries.scheduledDate));
+    }
 
     const history = await Promise.all(surgeries.map(async item => {
       const surgeryDateStr = item.surgery.scheduledDate ? item.surgery.scheduledDate.toISOString() : "";
@@ -247,7 +267,7 @@ export async function getUserSurgeryHistoryAction(userId: string) {
         diagnosis: item.surgery.diagnosis || "Sin diagnóstico especificado",
         procedure: item.surgery.notes || item.surgery.origin || "Intervención Programada",
         roomName: item.roomName || "Sala no asignada",
-        roleInSurgery: roleMap.get(item.surgery.id) || "ASISTENCIAL",
+        roleInSurgery: roleMap.get(item.surgery.id) || (isAllSurgeriesMode ? "SUPERVISOR ADMIN" : "ASISTENCIAL"),
         patient: maskedPatient,
       };
     }));

@@ -56,6 +56,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
         'TECNICO CIRCULANTE'
     ]);
     const staff = { surgeons, anesthesiologists, nurses };
+    const userPermissions: string[] = session?.user ? ((session.user as any).permissions || []) : [];
 
     return (
         <div className="w-full h-full min-h-screen">
@@ -65,7 +66,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ s
                 sortParams={sortParams} 
                 specialties={specialties} 
                 staff={staff} 
-                permissions={[]} 
+                permissions={userPermissions} 
                 diagnoses={diagnoses} 
                 procedures={procedures} 
                 interventions={interventions} 
