@@ -794,7 +794,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                             title={filterOnlyMySurgeries ? "Mostrando solo las cirugías donde estás asignado como equipo médico. Haz clic para ver toda la agenda central del hospital." : "Filtrar la tabla para mostrar únicamente tus cirugías asignadas"}
                         >
                             <Stethoscope size={14} className={filterOnlyMySurgeries ? "text-white" : "text-indigo-600 dark:text-indigo-400"} />
-                            <span>Mis Cirugías ({mySurgeriesCount})</span>
+                            <span>Mis Cirugías Hoy ({mySurgeriesCount})</span>
                             {filterOnlyMySurgeries && (
                                 <span className="ml-0.5 text-[9px] bg-white/25 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider font-extrabold hidden xs:inline-block">
                                     Filtrado
