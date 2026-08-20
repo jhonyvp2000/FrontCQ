@@ -733,7 +733,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-800 text-white px-4 py-3 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:from-blue-500 hover:to-indigo-500 transition-all select-none shadow-md z-[110] border-b border-blue-500/30 animate-pulse-slow"
                 >
                     <Activity size={16} className="animate-pulse text-blue-200 shrink-0" />
-                    <span>Modo TV Activo. Para una visualización óptima a pantalla completa (tipo Netflix), <strong>haz clic aquí</strong> o presiona <strong>F11</strong>.</span>
+                    <span>Modo TV Activo. Para una visualización óptima a pantalla completa, <strong>haz clic aquí</strong> o presiona <strong>F11</strong>.</span>
                 </div>
             )}
 
