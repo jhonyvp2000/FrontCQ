@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, Fragment } from "react";
-import { LayoutGrid, List as ListIcon, Calendar, ArrowUp, ArrowDown, User, Clock, Hourglass, CheckCircle2, XCircle, FileText, Activity, AlertCircle, Pencil, CopyPlus, AlertTriangle, X, Filter, Search, Maximize2, Minimize2, LogOut, Hospital, Stethoscope, UserCheck } from "lucide-react";
+import { LayoutGrid, List as ListIcon, Calendar, ArrowUp, ArrowDown, User, Clock, Hourglass, CheckCircle2, XCircle, FileText, Activity, AlertCircle, Pencil, CopyPlus, AlertTriangle, X, Filter, Search, Maximize2, Minimize2, LogOut, Hospital, Stethoscope, UserCheck, Megaphone } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +10,8 @@ import { signOut } from "next-auth/react";
 import { SurgeryTimeline } from "@/components/ui/surgery-timeline";
 import { UserProfileModal } from "@/components/ui/user-profile-modal";
 import { UserActivityDashboard } from "@/components/ui/user-activity-dashboard";
+import { AnnouncementBanner } from "@/components/ui/announcement-banner";
+import { AnnouncementsAdminModal } from "@/components/admin/announcements-admin-modal";
 import { AnimatePresence, motion } from "framer-motion";
 
 function getFormattedDate(dateValue: Date | string | null | undefined, isTimeDefined: boolean = true): React.ReactNode {
@@ -163,6 +165,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
     const canViewReport = permissions.includes('ver:reporte_operatorio');
     const canChangeStatus = permissions.includes('ciclar_estado:programacion');
     const canEditTimes = permissions.includes('editar_tiempos_fases:programacion');
+    const hasAdminPermission = permissions.includes('crear:programacion') || permissions.includes('editar:programacion') || currentUser?.dni === '09791569';
     const router = useRouter();
     const [optimisticStatuses, setOptimisticStatuses] = useState<Record<string, string>>({});
     const [pendingStatuses, setPendingStatuses] = useState<Record<string, boolean>>({});
@@ -204,6 +207,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
 
     const [viewMode, setViewMode] = useState<'list' | 'timeline'>('list');
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isAnnouncementsAdminOpen, setIsAnnouncementsAdminOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
         setMounted(true);
@@ -726,18 +730,13 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
 
     return (
         <div className={`bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 overflow-hidden shadow-sm flex flex-col ${isListFullscreen ? 'fixed inset-0 z-[100] w-screen h-screen rounded-none' : 'relative rounded-3xl h-full ring-1 ring-zinc-100 dark:ring-zinc-800/50'}`}>
-            {/* Banner superior reservado para anuncios y mensajes a usuarios */}
-            {/* 
-            {forceTvMode && isListFullscreen && !isBrowserFullscreen && (
-                <div 
-                    onClick={enterNativeFullscreen}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-800 text-white px-4 py-3 text-center text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:from-blue-500 hover:to-indigo-500 transition-all select-none shadow-md z-[110] border-b border-blue-500/30 animate-pulse-slow"
-                >
-                    <Activity size={16} className="animate-pulse text-blue-200 shrink-0" />
-                    <span>Modo TV Activo. Para una visualización óptima a pantalla completa, <strong>haz clic aquí</strong> o presiona <strong>F11</strong>.</span>
-                </div>
-            )}
-            */}
+            {/* Banner superior de anuncios y comunicaciones a usuarios */}
+            <AnnouncementBanner
+                userId={currentUser?.id}
+                isAdmin={hasAdminPermission}
+                onOpenProfileContacts={() => setIsProfileModalOpen(true)}
+                onOpenAdminModal={() => setIsAnnouncementsAdminOpen(true)}
+            />
 
             {/* Notificación de límite de ordenamiento */}
             <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-[200] transition-all duration-300 pointer-events-none ${showSortLimitAlert ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
@@ -1538,6 +1537,17 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     onClose={() => setIsProfileModalOpen(false)}
                     userId={currentUser.id}
                     onProfileUpdated={() => {
+                        router.refresh();
+                    }}
+                />
+            )}
+
+            {mounted && currentUser?.id && hasAdminPermission && (
+                <AnnouncementsAdminModal
+                    isOpen={isAnnouncementsAdminOpen}
+                    onClose={() => setIsAnnouncementsAdminOpen(false)}
+                    adminUserId={currentUser.id}
+                    onAnnouncementsUpdated={() => {
                         router.refresh();
                     }}
                 />

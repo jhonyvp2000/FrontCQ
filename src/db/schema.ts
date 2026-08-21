@@ -269,3 +269,34 @@ export const cqAccountRequestBlocks = pgTable("cq_account_request_blocks", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Anuncios y Comunicados Institucionales Administrables
+export const cqAnnouncements = pgTable("cq_announcements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  severity: varchar("severity", { length: 20 }).notNull().default("info"), // 'danger', 'warning', 'info', 'success'
+  targetType: varchar("target_type", { length: 20 }).notNull().default("ALL"), // 'ALL', 'ROLE', 'USER'
+  targetRoleId: uuid("target_role_id").references(() => rolesTable.id, { onDelete: 'cascade' }),
+  targetUserId: uuid("target_user_id").references(() => usersTable.id, { onDelete: 'cascade' }),
+  imageUrl: text("image_url"),
+  imageAlt: text("image_alt"),
+  actionLabel: varchar("action_label", { length: 100 }),
+  actionType: varchar("action_type", { length: 50 }).default("OPEN_IMAGE_MODAL"), // OPEN_IMAGE_MODAL, OPEN_PROFILE_CONTACTS, EXTERNAL_LINK
+  customUrl: text("custom_url"),
+  validFrom: timestamp("valid_from", { withTimezone: true }),
+  validUntil: timestamp("valid_until", { withTimezone: true }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdBy: uuid("created_by").references(() => usersTable.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Registro de Lecturas / Confirmación "Entendido" por Usuario
+export const cqAnnouncementReads = pgTable("cq_announcement_reads", {
+  announcementId: uuid("announcement_id").notNull().references(() => cqAnnouncements.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: 'cascade' }),
+  readAt: timestamp("read_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  primaryKey({ columns: [t.announcementId, t.userId] })
+]);
