@@ -726,7 +726,8 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
 
     return (
         <div className={`bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 overflow-hidden shadow-sm flex flex-col ${isListFullscreen ? 'fixed inset-0 z-[100] w-screen h-screen rounded-none' : 'relative rounded-3xl h-full ring-1 ring-zinc-100 dark:ring-zinc-800/50'}`}>
-            {/* Banner de Pantalla Completa para Modo TV */}
+            {/* Banner superior reservado para anuncios y mensajes a usuarios */}
+            {/* 
             {forceTvMode && isListFullscreen && !isBrowserFullscreen && (
                 <div 
                     onClick={enterNativeFullscreen}
@@ -736,6 +737,7 @@ export function SurgeryTvTable({ surgeriesData, salas, sortParams, specialties, 
                     <span>Modo TV Activo. Para una visualización óptima a pantalla completa, <strong>haz clic aquí</strong> o presiona <strong>F11</strong>.</span>
                 </div>
             )}
+            */}
 
             {/* Notificación de límite de ordenamiento */}
             <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-[200] transition-all duration-300 pointer-events-none ${showSortLimitAlert ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
