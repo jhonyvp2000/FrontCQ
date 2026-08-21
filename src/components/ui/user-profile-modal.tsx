@@ -280,6 +280,10 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
         }, 2200);
       } else {
         setSuccessMessage(res.message || "Perfil actualizado con éxito.");
+        if (res.profile) {
+          setIsEmailVerified(!!res.profile.isEmailVerified);
+          setIsPhoneVerified(!!res.profile.isPhoneVerified);
+        }
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
@@ -410,10 +414,18 @@ export function UserProfileModal({ isOpen, onClose, userId, onProfileUpdated }: 
                         <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                           <Mail size={14} className="text-zinc-400" /> Correo Electrónico
                         </label>
-                        {isEmailVerified && (
+                        {isEmailVerified ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
                             <CheckCircle2 size={11} /> Verificado ✓
                           </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartOtpVerification("email")}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-400 text-[10px] font-bold border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-105"
+                          >
+                            <AlertCircle size={11} /> ⚠️ Sin Verificar • Validar ahora
+                          </button>
                         )}
                       </div>
                       <input

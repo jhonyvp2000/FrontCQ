@@ -1033,12 +1033,33 @@ export async function updateUserProfileSelfAction(data: UpdateUserProfileInput) 
       updatedPasswordHash = await bcrypt.hash(newPassword, 10);
     }
 
-    // 6. Execute atomic DB updates
+    // 6. Execute atomic DB updates with consistency rules
+    const currentEmail = user.email ? user.email.trim().toLowerCase() : "";
+    const emailChanged = currentEmail !== cleanEmail;
+
+    const currentPhone = user.phoneNumber ? user.phoneNumber.trim() : "";
+    const phoneChanged = currentPhone !== (cleanPhone || "");
+
     const userUpdatePayload: any = {
       email: cleanEmail,
       phoneNumber: cleanPhone,
       updatedAt: new Date(),
     };
+
+    if (emailChanged) {
+      userUpdatePayload.isEmailVerified = false;
+      userUpdatePayload.emailVerifiedAt = null;
+      userUpdatePayload.emailOtpCode = null;
+      userUpdatePayload.emailOtpExpiresAt = null;
+    }
+
+    if (phoneChanged) {
+      userUpdatePayload.isPhoneVerified = false;
+      userUpdatePayload.phoneVerifiedAt = null;
+      userUpdatePayload.phoneOtpCode = null;
+      userUpdatePayload.phoneOtpExpiresAt = null;
+    }
+
     if (updatedPasswordHash) {
       userUpdatePayload.passwordHash = updatedPasswordHash;
     }
@@ -1077,9 +1098,21 @@ export async function updateUserProfileSelfAction(data: UpdateUserProfileInput) 
         .where(eq(cqAccountRequests.userId, userId));
     }
 
+    const updatedUser = await db.query.usersTable.findFirst({
+      where: eq(usersTable.id, userId)
+    });
+
     return {
       success: true,
-      message: "¡Perfil y datos de contacto actualizados exitosamente!",
+      message: emailChanged
+        ? "¡Perfil actualizado! Al haber modificado tu dirección de correo, este requiere ser validado nuevamente."
+        : "¡Perfil y datos de contacto actualizados exitosamente!",
+      profile: updatedUser ? {
+        email: updatedUser.email,
+        phone: updatedUser.phoneNumber,
+        isEmailVerified: updatedUser.isEmailVerified,
+        isPhoneVerified: updatedUser.isPhoneVerified,
+      } : undefined
     };
   } catch (error) {
     console.error("Error en updateUserProfileSelfAction:", error);
