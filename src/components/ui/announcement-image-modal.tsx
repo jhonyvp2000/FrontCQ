@@ -20,6 +20,12 @@ export function AnnouncementImageModal({
   const [imageError, setImageError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
+  React.useEffect(() => {
+    setImageLoaded(false);
+    setImageError(false);
+    setIsZoomed(false);
+  }, [announcement?.id, announcement?.imageUrl]);
+
   if (!announcement) return null;
 
   const severityColors = {
