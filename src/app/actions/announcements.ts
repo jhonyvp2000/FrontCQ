@@ -1,5 +1,7 @@
 "use server";
 
+import { promises as fs } from "fs";
+import path from "path";
 import { db } from "@/db";
 import { cqAnnouncements, cqAnnouncementReads, usersTable, userSystemRoles, rolesTable } from "@/db/schema";
 import { eq, and, or, isNull, lte, gte, sql, inArray } from "drizzle-orm";
@@ -340,5 +342,56 @@ export async function deleteAnnouncementAdminAction(adminUserId: string, id: str
   } catch (error) {
     console.error("Error en deleteAnnouncementAdminAction:", error);
     return { success: false, message: "Error al eliminar comunicado." };
+  }
+}
+
+/**
+ * ADMIN: Upload an infographic image file to public/announcements/
+ */
+export async function uploadAnnouncementImageAction(formData: FormData) {
+  try {
+    const adminUserId = formData.get("adminUserId") as string;
+    const file = formData.get("file") as File;
+
+    if (!adminUserId || !file) {
+      return { success: false, message: "Falta el archivo o usuario administrador." };
+    }
+
+    const isAdmin = await checkIsAdmin(adminUserId);
+    if (!isAdmin) {
+      return { success: false, message: "No tienes permisos de administrador." };
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return { success: false, message: "El archivo seleccionado debe ser una imagen (.png, .jpg, .webp)." };
+    }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Clean filename
+    const ext = path.extname(file.name) || ".png";
+    const cleanBasename = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const fileName = `infografia_${Date.now()}_${cleanBasename}${ext}`;
+
+    // Target Directories: Workspace and Production
+    const workspaceDir = path.join(process.cwd(), "public", "announcements");
+    const prodDir = "C:\\sistemas_ogess\\FrontCQ\\public\\announcements";
+
+    await fs.mkdir(workspaceDir, { recursive: true });
+    await fs.writeFile(path.join(workspaceDir, fileName), buffer);
+
+    try {
+      await fs.mkdir(prodDir, { recursive: true });
+      await fs.writeFile(path.join(prodDir, fileName), buffer);
+    } catch (prodErr) {
+      console.warn("No se pudo copiar a la ruta de producción C:\\sistemas_ogess...", prodErr);
+    }
+
+    const publicUrl = `/announcements/${fileName}`;
+    return { success: true, url: publicUrl, message: "¡Imagen cargada y guardada exitosamente!" };
+  } catch (error) {
+    console.error("Error en uploadAnnouncementImageAction:", error);
+    return { success: false, message: "Error al subir la imagen del comunicado." };
   }
 }

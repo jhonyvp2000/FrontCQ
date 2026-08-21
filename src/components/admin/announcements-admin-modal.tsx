@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Edit2, Trash2, Megaphone, Calendar, Eye, Image as ImageIcon, ShieldAlert, CheckCircle2, AlertTriangle, Sparkles, User, Users, Globe, Save } from "lucide-react";
+import { X, Plus, Edit2, Trash2, Megaphone, Calendar, Eye, Image as ImageIcon, ShieldAlert, CheckCircle2, AlertTriangle, Sparkles, User, Users, Globe, Save, Upload, Folder, Loader2 } from "lucide-react";
 import { SystemAnnouncement, AnnouncementSeverity, AnnouncementTargetType, AnnouncementActionType } from "@/types/announcement";
-import { getAllAnnouncementsAdminAction, createOrUpdateAnnouncementAdminAction, toggleAnnouncementStatusAdminAction, deleteAnnouncementAdminAction } from "@/app/actions/announcements";
+import { getAllAnnouncementsAdminAction, createOrUpdateAnnouncementAdminAction, toggleAnnouncementStatusAdminAction, deleteAnnouncementAdminAction, uploadAnnouncementImageAction } from "@/app/actions/announcements";
 
 interface AnnouncementsAdminModalProps {
   isOpen: boolean;
@@ -42,6 +42,29 @@ export function AnnouncementsAdminModal({
   const [validFrom, setValidFrom] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setFeedback(null);
+
+    const formData = new FormData();
+    formData.append("adminUserId", adminUserId);
+    formData.append("file", file);
+
+    const res = await uploadAnnouncementImageAction(formData);
+    setUploadingImage(false);
+
+    if (res.success && res.url) {
+      setImageUrl(res.url);
+      setFeedback({ type: "success", text: "¡Infografía cargada desdé tu equipo y guardada exitosamente!" });
+    } else {
+      setFeedback({ type: "error", text: res.message || "Error al subir la imagen." });
+    }
+  };
 
   useEffect(() => {
     if (isOpen && adminUserId) {
@@ -541,20 +564,56 @@ export function AnnouncementsAdminModal({
 
                   {/* Infographic Image Settings */}
                   <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 space-y-3">
-                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                      <ImageIcon size={14} className="text-blue-500" /> Infografía / Imagen del Modal (Opcional)
+                    <label className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <ImageIcon size={14} className="text-blue-500" /> Infografía / Imagen del Modal (Opcional)
+                      </span>
+                      {imageUrl && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                          <CheckCircle2 size={11} /> Imagen asignada
+                        </span>
+                      )}
                     </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <input
-                          type="text"
-                          value={imageUrl}
-                          onChange={(e) => setImageUrl(e.target.value)}
-                          placeholder="Ruta o URL: ej. /announcements/guia.png"
-                          className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
-                        />
+
+                    <div className="space-y-3">
+                      {/* File Upload Button + Text Input Dual Picker */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <label className={`px-4 py-2.5 rounded-xl border font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all shrink-0 ${
+                          uploadingImage
+                            ? "bg-zinc-200 text-zinc-500 border-zinc-300 cursor-not-allowed"
+                            : "bg-blue-600 hover:bg-blue-700 text-white border-blue-500 shadow-md shadow-blue-500/20"
+                        }`}>
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" /> Subiendo imagen...
+                            </>
+                          ) : (
+                            <>
+                              <Folder size={16} /> Buscar en mi PC...
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            disabled={uploadingImage}
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+
+                        <div className="flex-1">
+                          <input
+                            type="text"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            placeholder="O ingresa un enlace o ruta de la imagen (ej: /announcements/infografia.png)"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                          />
+                        </div>
                       </div>
-                      <div>
+
+                      {/* Image Alt Text & Thumbnail Preview */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                         <input
                           type="text"
                           value={imageAlt}
@@ -562,6 +621,31 @@ export function AnnouncementsAdminModal({
                           placeholder="Leyenda o texto alternativo de la imagen"
                           className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                         />
+
+                        {imageUrl && (
+                          <div className="flex items-center gap-3 p-2 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                            <img
+                              src={imageUrl}
+                              alt="Vista previa"
+                              className="w-10 h-10 object-cover rounded-lg border border-zinc-200 dark:border-zinc-700"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                            <div className="text-[11px] min-w-0 flex-1">
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200 block truncate">{imageUrl}</span>
+                              <span className="text-zinc-400 text-[10px]">Vista previa de la infografía</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setImageUrl("")}
+                              className="p-1 text-zinc-400 hover:text-rose-500 rounded-lg cursor-pointer"
+                              title="Quitar imagen"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
