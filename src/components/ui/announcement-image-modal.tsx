@@ -17,6 +17,7 @@ export function AnnouncementImageModal({
   onOpenProfileContacts,
 }: AnnouncementImageModalProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
 
   if (!announcement) return null;
@@ -109,24 +110,40 @@ export function AnnouncementImageModal({
               {/* Infographic Image Area */}
               {announcement.imageUrl ? (
                 <div className="relative group rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-950 flex items-center justify-center min-h-[220px]">
-                  {!imageLoaded && (
+                  {!imageLoaded && !imageError && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-zinc-800 animate-pulse text-zinc-400">
                       <ImageIcon size={32} />
                       <span className="text-xs font-semibold">Cargando infografía...</span>
                     </div>
                   )}
-                  <img
-                    src={announcement.imageUrl}
-                    alt={announcement.imageAlt || announcement.title}
-                    onLoad={() => setImageLoaded(true)}
-                    onClick={() => setIsZoomed(!isZoomed)}
-                    className={`w-full h-auto max-h-[340px] object-contain transition-transform duration-300 cursor-pointer ${
-                      isZoomed ? "scale-125 z-50" : "group-hover:scale-105"
-                    }`}
-                  />
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded-lg text-[10px] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    <ZoomIn size={12} /> Clic para ampliar
-                  </div>
+                  {imageError ? (
+                    <div className="p-6 flex flex-col items-center justify-center text-center gap-2 text-zinc-400 bg-zinc-900 w-full h-full min-h-[220px]">
+                      <AlertTriangle size={32} className="text-amber-500" />
+                      <span className="text-xs font-bold text-zinc-200">No se pudo cargar la imagen</span>
+                      <p className="text-[11px] text-zinc-400 max-w-xs leading-relaxed">
+                        El enlace no es un archivo de imagen directo (.png, .jpg). Si es una infografía local, colócala en la carpeta public/ o usa un enlace directo a una imagen.
+                      </p>
+                    </div>
+                  ) : (
+                    <img
+                      src={announcement.imageUrl}
+                      alt={announcement.imageAlt || announcement.title}
+                      onLoad={() => setImageLoaded(true)}
+                      onError={() => {
+                        setImageLoaded(true);
+                        setImageError(true);
+                      }}
+                      onClick={() => setIsZoomed(!isZoomed)}
+                      className={`w-full h-auto max-h-[340px] object-contain transition-transform duration-300 cursor-pointer ${
+                        isZoomed ? "scale-125 z-50" : "group-hover:scale-105"
+                      }`}
+                    />
+                  )}
+                  {!imageError && (
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white px-2 py-1 rounded-lg text-[10px] flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                      <ZoomIn size={12} /> Clic para ampliar
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-6 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 flex items-start gap-4">
