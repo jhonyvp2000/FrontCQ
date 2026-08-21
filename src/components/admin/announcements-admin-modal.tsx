@@ -51,18 +51,29 @@ export function AnnouncementsAdminModal({
     setUploadingImage(true);
     setFeedback(null);
 
-    const formData = new FormData();
-    formData.append("adminUserId", adminUserId);
-    formData.append("file", file);
+    try {
+      const formData = new FormData();
+      formData.append("adminUserId", adminUserId);
+      formData.append("file", file);
 
-    const res = await uploadAnnouncementImageAction(formData);
-    setUploadingImage(false);
+      const response = await fetch("/api/upload-announcement-image", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (res.success && res.url) {
-      setImageUrl(res.url);
-      setFeedback({ type: "success", text: "¡Infografía cargada desdé tu equipo y guardada exitosamente!" });
-    } else {
-      setFeedback({ type: "error", text: res.message || "Error al subir la imagen." });
+      const res = await response.json();
+      setUploadingImage(false);
+
+      if (res.success && res.url) {
+        setImageUrl(res.url);
+        setFeedback({ type: "success", text: "¡Infografía cargada desdé tu equipo y guardada exitosamente!" });
+      } else {
+        setFeedback({ type: "error", text: res.message || "Error al subir la imagen." });
+      }
+    } catch (err) {
+      console.error("Error al subir archivo:", err);
+      setUploadingImage(false);
+      setFeedback({ type: "error", text: "Error de conexión al subir la imagen." });
     }
   };
 
